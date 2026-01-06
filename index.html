@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mi Control de Gastos y Balance</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Iconos de Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Configuración de Tailwind -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { transition: background-color 0.3s, color 0.3s; }
+        .card-hover { transition: transform 0.2s; }
+        .card-hover:hover { transform: translateY(-2px); }
+        /* Ocultar scrollbar estándar pero permitir scroll */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        /* Animación suave para el modal */
+        .modal-enter { opacity: 0; transform: scale(0.95); }
+        .modal-enter-active { opacity: 1; transform: scale(1); transition: all 0.2s ease-out; }
+        .modal-exit { opacity: 1; transform: scale(1); }
+        .modal-exit-active { opacity: 0; transform: scale(0.95); transition: all 0.2s ease-in; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 font-sans antialiased pb-24">
+
+    <!-- Encabezado -->
+    <header class="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-20">
+        <div class="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div>
+                <h1 class="text-xl font-bold text-brand-600 dark:text-brand-500 flex items-center gap-2">
+                    <i data-lucide="wallet"></i> Finanzas Claras
+                </h1>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Control de Gastos e Ingresos</p>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="downloadData()" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition" title="Descargar Respaldo">
+                    <i data-lucide="download" class="w-5 h-5"></i>
+                </button>
+                <button onclick="toggleTheme()" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-yellow-500 dark:text-yellow-300 transition" title="Cambiar Tema">
+                    <i data-lucide="sun" id="theme-icon" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
+
+        <!-- Panel de Resumen (Balance) -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Balance Total -->
+            <div class="bg-gradient-to-br from-brand-500 to-brand-700 rounded-2xl p-5 text-white shadow-lg card-hover col-span-1 sm:col-span-2 lg:col-span-1">
+                <p class="text-brand-100 text-sm font-medium mb-1">Balance del Periodo</p>
+                <h2 class="text-3xl font-bold tracking-tight" id="balance-amount">$0.00</h2>
+                <div class="mt-2 text-xs text-brand-100 opacity-90 flex items-center gap-1">
+                    <i data-lucide="scale" class="w-3 h-3"></i> Disponible
+                </div>
+            </div>
+
+            <!-- Ingresos -->
+            <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow border border-gray-100 dark:border-gray-700 card-hover">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">Ingresos</p>
+                        <h2 class="text-2xl font-bold text-emerald-500" id="income-amount">$0.00</h2>
+                    </div>
+                    <div class="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg text-emerald-600 dark:text-emerald-400">
+                        <i data-lucide="arrow-up-circle"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gastos -->
+            <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow border border-gray-100 dark:border-gray-700 card-hover">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">Gastos</p>
+                        <h2 class="text-2xl font-bold text-red-500" id="expense-amount">$0.00</h2>
+                    </div>
+                    <div class="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg text-red-600 dark:text-red-400">
+                        <i data-lucide="arrow-down-circle"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Viáticos -->
+            <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow border border-gray-100 dark:border-gray-700 card-hover">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">En Viáticos</p>
+                        <h2 class="text-xl font-bold text-orange-500" id="viaticos-amount">$0.00</h2>
+                    </div>
+                    <div class="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg text-orange-600 dark:text-orange-400">
+                        <i data-lucide="briefcase"></i>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Filtros -->
+        <section class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+            <div class="flex flex-col md:flex-row gap-4 items-end md:items-center justify-between">
+                <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                    <div class="flex flex-col w-full">
+                        <label class="text-xs text-gray-500 mb-1">Desde</label>
+                        <input type="date" id="filter-date-start" onchange="applyFilters()" class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-sm rounded-lg p-2 focus:ring-2 focus:ring-brand-500 outline-none w-full">
+                    </div>
+                    <div class="flex flex-col w-full">
+                        <label class="text-xs text-gray-500 mb-1">Hasta</label>
+                        <input type="date" id="filter-date-end" onchange="applyFilters()" class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-sm rounded-lg p-2 focus:ring-2 focus:ring-brand-500 outline-none w-full">
+                    </div>
+                </div>
+                <!-- El botón filtrar ya no es estrictamente necesario con onchange, pero lo dejamos por usabilidad -->
+                <button onclick="applyFilters()" class="w-full md:w-auto bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg text-sm font-medium transition flex justify-center items-center gap-2">
+                    <i data-lucide="filter" class="w-4 h-4"></i> Actualizar
+                </button>
+            </div>
+        </section>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Panel Izquierdo: Gráfica y Top 5 -->
+            <div class="lg:col-span-1 space-y-6">
+                <!-- Gráfica -->
+                <div class="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col h-[320px]">
+                    <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Distribución de Gastos</h3>
+                    
+                    <div id="chart-container" class="relative flex-1 flex items-center justify-center">
+                        <canvas id="expensesChart"></canvas>
+                        <!-- Mensaje Empty State para Gráfica -->
+                        <div id="chart-empty-state" class="hidden absolute inset-0 flex-col items-center justify-center text-gray-400">
+                            <i data-lucide="pie-chart" class="w-10 h-10 mb-2 opacity-20"></i>
+                            <span class="text-xs text-center">Sin gastos registrados<br>en este periodo</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top 5 -->
+                <div class="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
+                        <i data-lucide="trophy" class="w-4 h-4 text-yellow-500"></i> Top 5 Gastos
+                    </h3>
+                    <ul class="space-y-3" id="top-5-list">
+                        <!-- Se llena con JS -->
+                        <li class="text-center text-gray-400 text-sm py-4">No hay datos suficientes</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Panel Derecho: Lista de Movimientos -->
+            <div class="lg:col-span-2">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden flex flex-col h-full min-h-[500px]">
+                    <div class="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex justify-between items-center sticky top-0">
+                        <h3 class="font-bold text-gray-700 dark:text-gray-300">Historial</h3>
+                        <span class="text-xs bg-brand-100 dark:bg-brand-900 text-brand-600 dark:text-brand-300 px-2 py-1 rounded-full" id="list-count">0 items</span>
+                    </div>
+                    
+                    <div class="overflow-y-auto flex-1 p-2" id="transactions-list">
+                        <!-- Lista vacía -->
+                        <div class="flex flex-col items-center justify-center h-64 text-gray-400">
+                            <i data-lucide="clipboard-list" class="w-12 h-12 mb-2 opacity-50"></i>
+                            <p>No hay movimientos registrados.</p>
+                            <p class="text-xs mt-1">Usa el botón <span class="font-bold">+</span> para comenzar.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Botón Flotante (FAB) -->
+    <button onclick="openModal()" class="fixed bottom-6 right-6 bg-brand-600 hover:bg-brand-700 text-white w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-brand-300 z-50">
+        <i data-lucide="plus" class="w-8 h-8"></i>
+    </button>
+
+    <!-- Modal Formulario -->
+    <div id="expense-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4 backdrop-blur-sm transition-opacity duration-300">
+        <!-- Agregado overflow-y-auto y max-h para móviles pequeños -->
+        <div class="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="p-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center shrink-0">
+                <h3 class="text-lg font-bold text-gray-800 dark:text-white" id="modal-title">Registrar Movimiento</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            
+            <div class="overflow-y-auto p-6">
+                <form id="expense-form" onsubmit="saveTransaction(event)" class="space-y-5">
+                    <input type="hidden" id="transaction-id">
+                    
+                    <!-- Selector de Tipo: Gasto vs Ingreso -->
+                    <div class="flex p-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                        <button type="button" id="type-expense" onclick="setTransactionType('expense')" class="flex-1 py-2 text-sm font-bold rounded-md shadow-sm transition-all bg-white text-red-600 dark:bg-gray-600 dark:text-red-400 ring-1 ring-black/5">
+                            Gasto
+                        </button>
+                        <button type="button" id="type-income" onclick="setTransactionType('income')" class="flex-1 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 rounded-md transition-all hover:text-gray-700 hover:bg-white/50">
+                            Ingreso
+                        </button>
+                    </div>
+                    <input type="hidden" id="transaction-type" value="expense">
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Monto ($)</label>
+                        <!-- Validación: min="0.01" y step="any" -->
+                        <input type="number" id="amount" min="0.01" step="any" required class="w-full text-2xl font-bold text-gray-800 dark:text-white bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-brand-500 outline-none transition-shadow" placeholder="0.00">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción</label>
+                        <input type="text" id="description" required maxlength="50" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-brand-500 outline-none dark:text-white transition-shadow" placeholder="Ej. Tacos, Gasolina...">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha</label>
+                            <input type="date" id="date" required class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-brand-500 outline-none dark:text-white transition-shadow">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoría</label>
+                            <div class="relative">
+                                <select id="category" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-3 pr-8 focus:ring-2 focus:ring-brand-500 outline-none dark:text-white appearance-none transition-shadow">
+                                    <!-- Se llena con JS -->
+                                </select>
+                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                                    <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Checkbox Viáticos (Solo para Gastos) -->
+                    <div id="viaticos-container" class="flex items-center gap-3 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-100 dark:border-orange-800/30 cursor-pointer hover:bg-orange-100 dark:hover:bg-orange-900/40 transition" onclick="document.getElementById('is-viaticos').click()">
+                        <input type="checkbox" id="is-viaticos" class="w-5 h-5 text-brand-600 rounded focus:ring-brand-500 accent-orange-500">
+                        <div class="select-none">
+                            <p class="text-sm font-medium text-gray-800 dark:text-gray-200">Es Viático / Viaje</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Marcar si es reembolsable</p>
+                        </div>
+                    </div>
+
+                    <div class="pt-2 flex gap-3 pb-2">
+                        <button type="button" onclick="closeModal()" class="flex-1 px-4 py-3 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 font-medium transition active:scale-95">Cancelar</button>
+                        <button type="submit" class="flex-1 px-4 py-3 text-white bg-brand-600 rounded-lg hover:bg-brand-700 font-medium shadow-lg shadow-brand-500/30 transition active:scale-95">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. CONFIGURACIÓN Y ESTADO ---
+        let transactions = JSON.parse(localStorage.getItem('myExpenses')) || [];
+        // Migración robusta
+        transactions = transactions.map(t => ({...t, type: t.type || 'expense'}));
+
+        let chartInstance = null;
+
+        // Categorías y Colores
+        const expenseCategories = {
+            'Alimentos': '#F87171', 'Transporte': '#60A5FA', 'Vivienda': '#34D399',
+            'Servicios': '#FBBF24', 'Salud': '#F472B6', 'Educación': '#818CF8',
+            'Entretenimiento': '#A78BFA', 'Ropa': '#FB7185', 'Deudas': '#94A3B8',
+            'Ahorro': '#4ADE80', 'Otros': '#CBD5E1'
+        };
+
+        const incomeCategories = {
+            'Nómina': '#10B981', 'Ventas': '#34D399', 'Reembolso': '#6EE7B7',
+            'Regalo': '#A7F3D0', 'Inversión': '#059669', 'Otros Ingresos': '#D1FAE5'
+        };
+
+        // --- 2. INICIALIZACIÓN ---
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            initTheme();
+            setDefaultDates();
+            renderApp();
+            populateCategories('expense'); // Default
+        });
+
+        function setDefaultDates() {
+            const today = new Date();
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            
+            // Asignar fechas por defecto a los inputs
+            document.getElementById('date').valueAsDate = today;
+            document.getElementById('filter-date-start').valueAsDate = firstDay;
+            document.getElementById('filter-date-end').valueAsDate = today;
+        }
+
+        // --- 3. LÓGICA DE NEGOCIO (CRUD) ---
+
+        function saveTransaction(e) {
+            e.preventDefault();
+            
+            const id = document.getElementById('transaction-id').value;
+            let amount = parseFloat(document.getElementById('amount').value);
+            const description = document.getElementById('description').value.trim();
+            const date = document.getElementById('date').value;
+            const category = document.getElementById('category').value;
+            const type = document.getElementById('transaction-type').value;
+            const isViaticos = type === 'expense' ? document.getElementById('is-viaticos').checked : false;
+
+            // Validación de seguridad (Server-side simulation)
+            if (amount <= 0 || isNaN(amount)) {
+                alert("Por favor ingresa un monto válido mayor a 0.");
+                return;
+            }
+            if (description === "") {
+                alert("La descripción es obligatoria.");
+                return;
+            }
+
+            // Asegurar que siempre guardamos positivos para facilitar la lógica, 
+            // la UI decide si resta o suma según 'type'
+            amount = Math.abs(amount);
+
+            if (id) {
+                // Editar
+                const index = transactions.findIndex(t => t.id === id);
+                if (index !== -1) {
+                    transactions[index] = { id, amount, description, date, category, isViaticos, type };
+                }
+            } else {
+                // Crear Nuevo
+                const newTransaction = {
+                    id: Date.now().toString(),
+                    amount,
+                    description,
+                    date,
+                    category,
+                    isViaticos,
+                    type
+                };
+                transactions.push(newTransaction);
+            }
+
+            saveToLocalStorage();
+            closeModal();
+            renderApp();
+        }
+
+        function editTransaction(id) {
+            const t = transactions.find(item => item.id === id);
+            if (!t) return;
+
+            document.getElementById('modal-title').innerText = "Editar Movimiento";
+            document.getElementById('transaction-id').value = t.id;
+            
+            setTransactionType(t.type); 
+
+            document.getElementById('amount').value = t.amount;
+            document.getElementById('description').value = t.description;
+            document.getElementById('date').value = t.date;
+            document.getElementById('category').value = t.category;
+            
+            if(t.type === 'expense') {
+                document.getElementById('is-viaticos').checked = t.isViaticos;
+            }
+
+            openModal(false);
+        }
+
+        function deleteTransaction(id) {
+            if (confirm('¿Estás seguro de eliminar este registro?')) {
+                transactions = transactions.filter(t => t.id !== id);
+                saveToLocalStorage();
+                renderApp();
+            }
+        }
+
+        function saveToLocalStorage() {
+            localStorage.setItem('myExpenses', JSON.stringify(transactions));
+        }
+
+        // --- 4. RENDERIZADO Y UI ---
+
+        function renderApp() {
+            const startDate = document.getElementById('filter-date-start').value;
+            const endDate = document.getElementById('filter-date-end').value;
+
+            // Filtrar datos
+            const filtered = transactions.filter(t => {
+                return t.date >= startDate && t.date <= endDate;
+            }).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            // Cálculos
+            const totalIncome = filtered.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+            const totalExpense = filtered.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+            const viaticosTotal = filtered.filter(t => t.type === 'expense' && t.isViaticos).reduce((sum, t) => sum + t.amount, 0);
+            const balance = totalIncome - totalExpense;
+
+            // Actualizar Tarjetas
+            document.getElementById('income-amount').innerText = formatCurrency(totalIncome);
+            document.getElementById('expense-amount').innerText = formatCurrency(totalExpense);
+            document.getElementById('viaticos-amount').innerText = formatCurrency(viaticosTotal);
+            document.getElementById('balance-amount').innerText = formatCurrency(balance);
+            
+            const balanceEl = document.getElementById('balance-amount');
+            if (balance < 0) {
+                balanceEl.classList.add('text-red-200');
+            } else {
+                balanceEl.classList.remove('text-red-200');
+            }
+
+            document.getElementById('list-count').innerText = `${filtered.length} items`;
+
+            // Actualizar Lista Principal
+            renderTransactionList(filtered);
+
+            // Actualizar Top 5 (Solo gastos)
+            renderTop5(filtered.filter(t => t.type === 'expense'));
+
+            // Actualizar Gráfica (Solo gastos)
+            updateChart(filtered.filter(t => t.type === 'expense'));
+
+            lucide.createIcons();
+        }
+
+        function renderTransactionList(list) {
+            const container = document.getElementById('transactions-list');
+            container.innerHTML = '';
+
+            if (list.length === 0) {
+                container.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-full text-gray-400 py-10">
+                        <i data-lucide="inbox" class="w-12 h-12 mb-2 opacity-50"></i>
+                        <p class="text-sm">No hay movimientos en este periodo.</p>
+                    </div>`;
+                return;
+            }
+
+            list.forEach(t => {
+                const isExpense = t.type === 'expense';
+                const colorClass = isExpense ? 'text-gray-800 dark:text-gray-200' : 'text-emerald-600 dark:text-emerald-400 font-bold';
+                const sign = isExpense ? '- ' : '+ ';
+                
+                const isViaticoBadge = (isExpense && t.isViaticos)
+                    ? `<span class="text-[10px] bg-orange-100 dark:bg-orange-900 text-orange-600 dark:text-orange-300 px-1.5 py-0.5 rounded ml-2 border border-orange-200 dark:border-orange-800">Viático</span>` 
+                    : '';
+
+                let catColor = '#999';
+                if(isExpense) catColor = expenseCategories[t.category] || '#999';
+                else catColor = incomeCategories[t.category] || '#10B981';
+                
+                const item = document.createElement('div');
+                item.className = 'flex items-center justify-between p-3 mb-2 bg-white dark:bg-gray-800 border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 transition rounded-lg group';
+                item.innerHTML = `
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0 font-bold text-xs shadow-sm" 
+                             style="background-color: ${catColor}">
+                            ${t.category.substring(0, 2).toUpperCase()}
+                        </div>
+                        <div class="min-w-0">
+                            <p class="font-medium text-gray-800 dark:text-gray-200 truncate text-sm">
+                                ${t.description} ${isViaticoBadge}
+                            </p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">
+                                ${formatDate(t.date)} • ${t.category}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4 pl-2 shrink-0">
+                        <span class="${colorClass} text-sm whitespace-nowrap">${sign}${formatCurrency(t.amount)}</span>
+                        <div class="flex gap-1 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="editTransaction('${t.id}')" class="p-1.5 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                            <button onclick="deleteTransaction('${t.id}')" class="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function renderTop5(list) {
+            const container = document.getElementById('top-5-list');
+            const sorted = [...list].sort((a, b) => b.amount - a.amount).slice(0, 5);
+            
+            container.innerHTML = '';
+            
+            if(sorted.length === 0) {
+                 container.innerHTML = '<li class="text-center text-gray-400 text-xs py-4">Registra gastos para ver el Top 5</li>';
+                 return;
+            }
+
+            sorted.forEach((exp, index) => {
+                const li = document.createElement('li');
+                li.className = 'flex items-center justify-between text-sm border-b border-gray-50 dark:border-gray-700 pb-2 last:border-0';
+                li.innerHTML = `
+                    <div class="flex items-center gap-2 truncate flex-1">
+                        <span class="text-xs font-bold text-gray-400 w-5">#${index + 1}</span>
+                        <span class="text-gray-700 dark:text-gray-300 truncate">${exp.description}</span>
+                    </div>
+                    <span class="font-bold text-gray-800 dark:text-gray-200 text-xs whitespace-nowrap">${formatCurrency(exp.amount)}</span>
+                `;
+                container.appendChild(li);
+            });
+        }
+
+        function updateChart(list) {
+            const ctx = document.getElementById('expensesChart').getContext('2d');
+            const emptyState = document.getElementById('chart-empty-state');
+            const canvas = document.getElementById('expensesChart');
+            
+            // Destruir gráfica anterior siempre
+            if (chartInstance) {
+                chartInstance.destroy();
+                chartInstance = null;
+            }
+
+            if (list.length === 0) {
+                // Mostrar estado vacío
+                emptyState.classList.remove('hidden');
+                emptyState.classList.add('flex');
+                canvas.classList.add('opacity-0');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+                emptyState.classList.remove('flex');
+                canvas.classList.remove('opacity-0');
+            }
+
+            const totalsByCategory = {};
+            list.forEach(exp => {
+                totalsByCategory[exp.category] = (totalsByCategory[exp.category] || 0) + exp.amount;
+            });
+
+            const labels = Object.keys(totalsByCategory);
+            const data = Object.values(totalsByCategory);
+            const bgColors = labels.map(cat => expenseCategories[cat] || '#999');
+
+            chartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: bgColors,
+                        borderWidth: 0,
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                boxWidth: 10,
+                                font: { size: 10 },
+                                color: document.documentElement.classList.contains('dark') ? '#ccc' : '#666'
+                            }
+                        }
+                    },
+                    layout: {
+                        padding: 10
+                    }
+                }
+            });
+        }
+
+        // --- 5. LÓGICA DEL FORMULARIO ---
+
+        function setTransactionType(type) {
+            const typeInput = document.getElementById('transaction-type');
+            const btnExpense = document.getElementById('type-expense');
+            const btnIncome = document.getElementById('type-income');
+            const viaticosContainer = document.getElementById('viaticos-container');
+            const viaticosCheckbox = document.getElementById('is-viaticos');
+
+            typeInput.value = type;
+
+            // Clases comunes de activo/inactivo
+            const activeClasses = ['bg-white', 'shadow-sm', 'font-bold', 'ring-1', 'ring-black/5'];
+            const inactiveClasses = ['text-gray-500', 'dark:text-gray-400', 'hover:bg-white/50'];
+
+            if (type === 'expense') {
+                // Style Expense (Active)
+                btnExpense.classList.add(...activeClasses, 'text-red-600', 'dark:bg-gray-600', 'dark:text-red-400');
+                btnExpense.classList.remove(...inactiveClasses);
+                
+                // Style Income (Inactive)
+                btnIncome.classList.remove(...activeClasses, 'text-emerald-600', 'dark:bg-gray-600', 'dark:text-emerald-400');
+                btnIncome.classList.add(...inactiveClasses);
+                
+                viaticosContainer.classList.remove('hidden');
+                viaticosContainer.classList.add('flex');
+                
+                populateCategories('expense');
+            } else {
+                // Style Income (Active)
+                btnIncome.classList.add(...activeClasses, 'text-emerald-600', 'dark:bg-gray-600', 'dark:text-emerald-400');
+                btnIncome.classList.remove(...inactiveClasses);
+                
+                // Style Expense (Inactive)
+                btnExpense.classList.remove(...activeClasses, 'text-red-600', 'dark:bg-gray-600', 'dark:text-red-400');
+                btnExpense.classList.add(...inactiveClasses);
+
+                viaticosContainer.classList.add('hidden');
+                viaticosContainer.classList.remove('flex');
+                viaticosCheckbox.checked = false;
+
+                populateCategories('income');
+            }
+        }
+
+        function populateCategories(type) {
+            const select = document.getElementById('category');
+            const currentVal = select.value;
+            select.innerHTML = '';
+            
+            const categories = type === 'expense' ? Object.keys(expenseCategories) : Object.keys(incomeCategories);
+            
+            categories.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat;
+                option.text = cat;
+                select.appendChild(option);
+            });
+
+            if (categories.includes(currentVal)) {
+                select.value = currentVal;
+            }
+        }
+
+        // --- 6. UTILIDADES ---
+
+        function formatCurrency(num) {
+            return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(num);
+        }
+
+        function formatDate(dateStr) {
+            if(!dateStr) return '';
+            const [year, month, day] = dateStr.split('-');
+            return `${day}/${month}/${year}`;
+        }
+
+        function applyFilters() { renderApp(); }
+
+        // Modal Logic
+        function openModal(reset = true) {
+            if(reset) {
+                document.getElementById('expense-form').reset();
+                document.getElementById('transaction-id').value = '';
+                document.getElementById('date').valueAsDate = new Date();
+                document.getElementById('modal-title').innerText = "Nuevo Movimiento";
+                setTransactionType('expense'); 
+            }
+            
+            const modal = document.getElementById('expense-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            
+            // Animación
+            const modalContent = modal.querySelector('div');
+            modalContent.classList.remove('modal-exit', 'modal-exit-active');
+            modalContent.classList.add('modal-enter');
+            setTimeout(() => modalContent.classList.add('modal-enter-active'), 10);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('expense-modal');
+            const modalContent = modal.querySelector('div');
+            
+            modalContent.classList.remove('modal-enter', 'modal-enter-active');
+            modalContent.classList.add('modal-exit');
+            modalContent.classList.add('modal-exit-active');
+
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 200); // Wait for transition
+        }
+
+        // Theme
+        function initTheme() {
+            if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                updateThemeIcon(true);
+            } else {
+                document.documentElement.classList.remove('dark');
+                updateThemeIcon(false);
+            }
+        }
+
+        function toggleTheme() {
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                localStorage.theme = 'light';
+                updateThemeIcon(false);
+            } else {
+                document.documentElement.classList.add('dark');
+                localStorage.theme = 'dark';
+                updateThemeIcon(true);
+            }
+            renderApp();
+        }
+
+        function updateThemeIcon(isDark) {
+            const icon = document.getElementById('theme-icon');
+            if(isDark) icon.setAttribute('data-lucide', 'moon');
+            else icon.setAttribute('data-lucide', 'sun');
+            lucide.createIcons();
+        }
+
+        // Download
+        function downloadData() {
+            if(transactions.length === 0) {
+                alert("No hay datos para descargar");
+                return;
+            }
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(transactions, null, 2));
+            const node = document.createElement('a');
+            node.setAttribute("href", dataStr);
+            const date = new Date().toISOString().slice(0,10);
+            node.setAttribute("download", `mis_finanzas_${date}.json`);
+            document.body.appendChild(node);
+            node.click();
+            node.remove();
+        }
+
+        document.addEventListener('keydown', function(event){
+            if(event.key === "Escape") closeModal();
+        });
+    </script>
+</body>
+</html>
