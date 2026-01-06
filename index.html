@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="icon.png">
 <head>
-   <meta charset="UTF-8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Mi Control de Gastos y Balance</title>
     <!-- Tailwind CSS -->
@@ -70,6 +70,11 @@
                 <p class="text-xs text-gray-500 dark:text-gray-400">Control de Gastos e Ingresos</p>
             </div>
             <div class="flex gap-2">
+                <!-- Botón Borrar Todo (NUEVO) -->
+                <button onclick="wipeData()" class="p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 dark:text-red-400 transition" title="Borrar Todo / Reiniciar">
+                    <i data-lucide="trash-2" class="w-5 h-5"></i>
+                </button>
+                <div class="w-px h-8 bg-gray-200 dark:bg-gray-700 mx-1"></div>
                 <!-- Botón Cargar Respaldo -->
                 <button onclick="document.getElementById('restore-input').click()" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition" title="Cargar Respaldo">
                     <i data-lucide="upload" class="w-5 h-5"></i>
@@ -323,7 +328,7 @@
             document.getElementById('filter-date-end').valueAsDate = today;
         }
 
-        // --- 3. LÓGICA DE NEGOCIO (CRUD + RESTORE) ---
+        // --- 3. LÓGICA DE NEGOCIO (CRUD + RESTORE + WIPE) ---
 
         function saveTransaction(e) {
             e.preventDefault();
@@ -396,7 +401,18 @@
             }
         }
 
-        // --- NUEVA FUNCIÓN: CARGAR RESPALDO ---
+        // NUEVA FUNCIÓN: BORRAR TODO (WIPE)
+        function wipeData() {
+            if (confirm("⚠️ ¡CUIDADO! ⚠️\n\n¿Estás seguro de que quieres BORRAR TODOS los datos?\n\nEsta acción no se puede deshacer y borrará todo el historial.")) {
+                transactions = [];
+                saveToLocalStorage();
+                renderApp();
+                // Feedback visual
+                alert("La base de datos ha sido borrada correctamente.");
+            }
+        }
+
+        // CARGAR RESPALDO
         function restoreData(input) {
             const file = input.files[0];
             if (!file) return;
