@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="icon.png">
 <head>
-    <meta charset="UTF-8">
+   <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Mi Control de Gastos y Balance</title>
     <!-- Tailwind CSS -->
@@ -17,6 +17,13 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Iconos de Lucide -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- PWA Tags (Preparado para la guía de GitHub) -->
+    <link rel="icon" type="image/png" href="icon.png">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0ea5e9">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
     <!-- Configuración de Tailwind -->
     <script>
         tailwind.config = {
@@ -40,10 +47,8 @@
         body { transition: background-color 0.3s, color 0.3s; }
         .card-hover { transition: transform 0.2s; }
         .card-hover:hover { transform: translateY(-2px); }
-        /* Ocultar scrollbar estándar pero permitir scroll */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        /* Animación suave para el modal */
         .modal-enter { opacity: 0; transform: scale(0.95); }
         .modal-enter-active { opacity: 1; transform: scale(1); transition: all 0.2s ease-out; }
         .modal-exit { opacity: 1; transform: scale(1); }
@@ -51,6 +56,9 @@
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 font-sans antialiased pb-24">
+
+    <!-- Input oculto para cargar archivos -->
+    <input type="file" id="restore-input" accept=".json" class="hidden" onchange="restoreData(this)">
 
     <!-- Encabezado -->
     <header class="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-20">
@@ -62,9 +70,15 @@
                 <p class="text-xs text-gray-500 dark:text-gray-400">Control de Gastos e Ingresos</p>
             </div>
             <div class="flex gap-2">
-                <button onclick="downloadData()" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition" title="Descargar Respaldo">
+                <!-- Botón Cargar Respaldo -->
+                <button onclick="document.getElementById('restore-input').click()" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition" title="Cargar Respaldo">
+                    <i data-lucide="upload" class="w-5 h-5"></i>
+                </button>
+                <!-- Botón Descargar -->
+                <button onclick="downloadData()" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition" title="Descargar Datos">
                     <i data-lucide="download" class="w-5 h-5"></i>
                 </button>
+                <!-- Botón Tema -->
                 <button onclick="toggleTheme()" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-yellow-500 dark:text-yellow-300 transition" title="Cambiar Tema">
                     <i data-lucide="sun" id="theme-icon" class="w-5 h-5"></i>
                 </button>
@@ -138,7 +152,6 @@
                         <input type="date" id="filter-date-end" onchange="applyFilters()" class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-sm rounded-lg p-2 focus:ring-2 focus:ring-brand-500 outline-none w-full">
                     </div>
                 </div>
-                <!-- El botón filtrar ya no es estrictamente necesario con onchange, pero lo dejamos por usabilidad -->
                 <button onclick="applyFilters()" class="w-full md:w-auto bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg text-sm font-medium transition flex justify-center items-center gap-2">
                     <i data-lucide="filter" class="w-4 h-4"></i> Actualizar
                 </button>
@@ -203,7 +216,6 @@
 
     <!-- Modal Formulario -->
     <div id="expense-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4 backdrop-blur-sm transition-opacity duration-300">
-        <!-- Agregado overflow-y-auto y max-h para móviles pequeños -->
         <div class="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div class="p-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center shrink-0">
                 <h3 class="text-lg font-bold text-gray-800 dark:text-white" id="modal-title">Registrar Movimiento</h3>
@@ -216,7 +228,7 @@
                 <form id="expense-form" onsubmit="saveTransaction(event)" class="space-y-5">
                     <input type="hidden" id="transaction-id">
                     
-                    <!-- Selector de Tipo: Gasto vs Ingreso -->
+                    <!-- Selector de Tipo -->
                     <div class="flex p-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
                         <button type="button" id="type-expense" onclick="setTransactionType('expense')" class="flex-1 py-2 text-sm font-bold rounded-md shadow-sm transition-all bg-white text-red-600 dark:bg-gray-600 dark:text-red-400 ring-1 ring-black/5">
                             Gasto
@@ -229,7 +241,6 @@
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Monto ($)</label>
-                        <!-- Validación: min="0.01" y step="any" -->
                         <input type="number" id="amount" min="0.01" step="any" required class="w-full text-2xl font-bold text-gray-800 dark:text-white bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-brand-500 outline-none transition-shadow" placeholder="0.00">
                     </div>
 
@@ -256,7 +267,7 @@
                         </div>
                     </div>
 
-                    <!-- Checkbox Viáticos (Solo para Gastos) -->
+                    <!-- Checkbox Viáticos -->
                     <div id="viaticos-container" class="flex items-center gap-3 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-100 dark:border-orange-800/30 cursor-pointer hover:bg-orange-100 dark:hover:bg-orange-900/40 transition" onclick="document.getElementById('is-viaticos').click()">
                         <input type="checkbox" id="is-viaticos" class="w-5 h-5 text-brand-600 rounded focus:ring-brand-500 accent-orange-500">
                         <div class="select-none">
@@ -277,12 +288,11 @@
     <script>
         // --- 1. CONFIGURACIÓN Y ESTADO ---
         let transactions = JSON.parse(localStorage.getItem('myExpenses')) || [];
-        // Migración robusta
         transactions = transactions.map(t => ({...t, type: t.type || 'expense'}));
 
         let chartInstance = null;
 
-        // Categorías y Colores
+        // Categorías
         const expenseCategories = {
             'Alimentos': '#F87171', 'Transporte': '#60A5FA', 'Vivienda': '#34D399',
             'Servicios': '#FBBF24', 'Salud': '#F472B6', 'Educación': '#818CF8',
@@ -301,20 +311,19 @@
             initTheme();
             setDefaultDates();
             renderApp();
-            populateCategories('expense'); // Default
+            populateCategories('expense'); 
         });
 
         function setDefaultDates() {
             const today = new Date();
             const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
             
-            // Asignar fechas por defecto a los inputs
             document.getElementById('date').valueAsDate = today;
             document.getElementById('filter-date-start').valueAsDate = firstDay;
             document.getElementById('filter-date-end').valueAsDate = today;
         }
 
-        // --- 3. LÓGICA DE NEGOCIO (CRUD) ---
+        // --- 3. LÓGICA DE NEGOCIO (CRUD + RESTORE) ---
 
         function saveTransaction(e) {
             e.preventDefault();
@@ -327,7 +336,6 @@
             const type = document.getElementById('transaction-type').value;
             const isViaticos = type === 'expense' ? document.getElementById('is-viaticos').checked : false;
 
-            // Validación de seguridad (Server-side simulation)
             if (amount <= 0 || isNaN(amount)) {
                 alert("Por favor ingresa un monto válido mayor a 0.");
                 return;
@@ -337,18 +345,14 @@
                 return;
             }
 
-            // Asegurar que siempre guardamos positivos para facilitar la lógica, 
-            // la UI decide si resta o suma según 'type'
             amount = Math.abs(amount);
 
             if (id) {
-                // Editar
                 const index = transactions.findIndex(t => t.id === id);
                 if (index !== -1) {
                     transactions[index] = { id, amount, description, date, category, isViaticos, type };
                 }
             } else {
-                // Crear Nuevo
                 const newTransaction = {
                     id: Date.now().toString(),
                     amount,
@@ -372,9 +376,7 @@
 
             document.getElementById('modal-title').innerText = "Editar Movimiento";
             document.getElementById('transaction-id').value = t.id;
-            
             setTransactionType(t.type); 
-
             document.getElementById('amount').value = t.amount;
             document.getElementById('description').value = t.description;
             document.getElementById('date').value = t.date;
@@ -383,7 +385,6 @@
             if(t.type === 'expense') {
                 document.getElementById('is-viaticos').checked = t.isViaticos;
             }
-
             openModal(false);
         }
 
@@ -393,6 +394,38 @@
                 saveToLocalStorage();
                 renderApp();
             }
+        }
+
+        // --- NUEVA FUNCIÓN: CARGAR RESPALDO ---
+        function restoreData(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    if (!Array.isArray(data)) {
+                        alert("El archivo no tiene el formato correcto.");
+                        return;
+                    }
+
+                    if (confirm(`Se encontraron ${data.length} registros. ¿Deseas REEMPLAZAR tu información actual con este respaldo? \n(Se borrarán los datos actuales no guardados)`)) {
+                        // Asegurar compatibilidad
+                        transactions = data.map(t => ({...t, type: t.type || 'expense'}));
+                        saveToLocalStorage();
+                        renderApp();
+                        alert("¡Respaldo cargado exitosamente!");
+                    }
+                } catch (error) {
+                    console.error(error);
+                    alert("Error al leer el archivo. Asegúrate de que sea un JSON válido.");
+                }
+                // Limpiar input para permitir recargar el mismo archivo
+                input.value = ''; 
+            };
+            reader.readAsText(file);
         }
 
         function saveToLocalStorage() {
@@ -405,39 +438,28 @@
             const startDate = document.getElementById('filter-date-start').value;
             const endDate = document.getElementById('filter-date-end').value;
 
-            // Filtrar datos
             const filtered = transactions.filter(t => {
                 return t.date >= startDate && t.date <= endDate;
             }).sort((a, b) => new Date(b.date) - new Date(a.date));
 
-            // Cálculos
             const totalIncome = filtered.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
             const totalExpense = filtered.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
             const viaticosTotal = filtered.filter(t => t.type === 'expense' && t.isViaticos).reduce((sum, t) => sum + t.amount, 0);
             const balance = totalIncome - totalExpense;
 
-            // Actualizar Tarjetas
             document.getElementById('income-amount').innerText = formatCurrency(totalIncome);
             document.getElementById('expense-amount').innerText = formatCurrency(totalExpense);
             document.getElementById('viaticos-amount').innerText = formatCurrency(viaticosTotal);
             document.getElementById('balance-amount').innerText = formatCurrency(balance);
             
             const balanceEl = document.getElementById('balance-amount');
-            if (balance < 0) {
-                balanceEl.classList.add('text-red-200');
-            } else {
-                balanceEl.classList.remove('text-red-200');
-            }
+            if (balance < 0) balanceEl.classList.add('text-red-200');
+            else balanceEl.classList.remove('text-red-200');
 
             document.getElementById('list-count').innerText = `${filtered.length} items`;
 
-            // Actualizar Lista Principal
             renderTransactionList(filtered);
-
-            // Actualizar Top 5 (Solo gastos)
             renderTop5(filtered.filter(t => t.type === 'expense'));
-
-            // Actualizar Gráfica (Solo gastos)
             updateChart(filtered.filter(t => t.type === 'expense'));
 
             lucide.createIcons();
@@ -528,14 +550,12 @@
             const emptyState = document.getElementById('chart-empty-state');
             const canvas = document.getElementById('expensesChart');
             
-            // Destruir gráfica anterior siempre
             if (chartInstance) {
                 chartInstance.destroy();
                 chartInstance = null;
             }
 
             if (list.length === 0) {
-                // Mostrar estado vacío
                 emptyState.classList.remove('hidden');
                 emptyState.classList.add('flex');
                 canvas.classList.add('opacity-0');
@@ -570,23 +590,14 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: {
-                            position: 'right',
-                            labels: {
-                                boxWidth: 10,
-                                font: { size: 10 },
-                                color: document.documentElement.classList.contains('dark') ? '#ccc' : '#666'
-                            }
-                        }
+                        legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 }, color: document.documentElement.classList.contains('dark') ? '#ccc' : '#666' } }
                     },
-                    layout: {
-                        padding: 10
-                    }
+                    layout: { padding: 10 }
                 }
             });
         }
 
-        // --- 5. LÓGICA DEL FORMULARIO ---
+        // --- 5. LÓGICA DEL FORMULARIO Y MODAL ---
 
         function setTransactionType(type) {
             const typeInput = document.getElementById('transaction-type');
@@ -596,37 +607,25 @@
             const viaticosCheckbox = document.getElementById('is-viaticos');
 
             typeInput.value = type;
-
-            // Clases comunes de activo/inactivo
             const activeClasses = ['bg-white', 'shadow-sm', 'font-bold', 'ring-1', 'ring-black/5'];
             const inactiveClasses = ['text-gray-500', 'dark:text-gray-400', 'hover:bg-white/50'];
 
             if (type === 'expense') {
-                // Style Expense (Active)
                 btnExpense.classList.add(...activeClasses, 'text-red-600', 'dark:bg-gray-600', 'dark:text-red-400');
                 btnExpense.classList.remove(...inactiveClasses);
-                
-                // Style Income (Inactive)
                 btnIncome.classList.remove(...activeClasses, 'text-emerald-600', 'dark:bg-gray-600', 'dark:text-emerald-400');
                 btnIncome.classList.add(...inactiveClasses);
-                
                 viaticosContainer.classList.remove('hidden');
                 viaticosContainer.classList.add('flex');
-                
                 populateCategories('expense');
             } else {
-                // Style Income (Active)
                 btnIncome.classList.add(...activeClasses, 'text-emerald-600', 'dark:bg-gray-600', 'dark:text-emerald-400');
                 btnIncome.classList.remove(...inactiveClasses);
-                
-                // Style Expense (Inactive)
                 btnExpense.classList.remove(...activeClasses, 'text-red-600', 'dark:bg-gray-600', 'dark:text-red-400');
                 btnExpense.classList.add(...inactiveClasses);
-
                 viaticosContainer.classList.add('hidden');
                 viaticosContainer.classList.remove('flex');
                 viaticosCheckbox.checked = false;
-
                 populateCategories('income');
             }
         }
@@ -637,7 +636,6 @@
             select.innerHTML = '';
             
             const categories = type === 'expense' ? Object.keys(expenseCategories) : Object.keys(incomeCategories);
-            
             categories.forEach(cat => {
                 const option = document.createElement('option');
                 option.value = cat;
@@ -645,12 +643,8 @@
                 select.appendChild(option);
             });
 
-            if (categories.includes(currentVal)) {
-                select.value = currentVal;
-            }
+            if (categories.includes(currentVal)) select.value = currentVal;
         }
-
-        // --- 6. UTILIDADES ---
 
         function formatCurrency(num) {
             return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(num);
@@ -664,7 +658,6 @@
 
         function applyFilters() { renderApp(); }
 
-        // Modal Logic
         function openModal(reset = true) {
             if(reset) {
                 document.getElementById('expense-form').reset();
@@ -673,12 +666,10 @@
                 document.getElementById('modal-title').innerText = "Nuevo Movimiento";
                 setTransactionType('expense'); 
             }
-            
             const modal = document.getElementById('expense-modal');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
             
-            // Animación
             const modalContent = modal.querySelector('div');
             modalContent.classList.remove('modal-exit', 'modal-exit-active');
             modalContent.classList.add('modal-enter');
@@ -688,18 +679,12 @@
         function closeModal() {
             const modal = document.getElementById('expense-modal');
             const modalContent = modal.querySelector('div');
-            
             modalContent.classList.remove('modal-enter', 'modal-enter-active');
             modalContent.classList.add('modal-exit');
             modalContent.classList.add('modal-exit-active');
-
-            setTimeout(() => {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-            }, 200); // Wait for transition
+            setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); }, 200);
         }
 
-        // Theme
         function initTheme() {
             if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                 document.documentElement.classList.add('dark');
@@ -730,7 +715,6 @@
             lucide.createIcons();
         }
 
-        // Download
         function downloadData() {
             if(transactions.length === 0) {
                 alert("No hay datos para descargar");
@@ -746,10 +730,7 @@
             node.remove();
         }
 
-        document.addEventListener('keydown', function(event){
-            if(event.key === "Escape") closeModal();
-        });
+        document.addEventListener('keydown', function(event){ if(event.key === "Escape") closeModal(); });
     </script>
 </body>
-
 </html>
