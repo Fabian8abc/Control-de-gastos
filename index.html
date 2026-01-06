@@ -8,37 +8,26 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="icon.png">
 <head>
-<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mi Control de Gastos y Balance</title>
-    <!-- Tailwind CSS -->
+    <title>Comando Financiero</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Iconos de Lucide -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- PWA Tags (Preparado para la guía de GitHub) -->
+    
+    <!-- PWA Config -->
     <link rel="icon" type="image/png" href="icon.png">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0ea5e9">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
-    <!-- Configuración de Tailwind -->
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
-                        brand: {
-                            50: '#f0f9ff',
-                            100: '#e0f2fe',
-                            500: '#0ea5e9',
-                            600: '#0284c7',
-                            900: '#0c4a6e',
-                        }
+                        brand: { 50:'#f0f9ff', 100:'#e0f2fe', 500:'#0ea5e9', 600:'#0284c7', 900:'#0c4a6e' }
                     }
                 }
             }
@@ -46,727 +35,886 @@
     </script>
     <style>
         body { transition: background-color 0.3s, color 0.3s; }
-        .card-hover { transition: transform 0.2s; }
-        .card-hover:hover { transform: translateY(-2px); }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .modal-enter { opacity: 0; transform: scale(0.95); }
-        .modal-enter-active { opacity: 1; transform: scale(1); transition: all 0.2s ease-out; }
-        .modal-exit { opacity: 1; transform: scale(1); }
-        .modal-exit-active { opacity: 0; transform: scale(0.95); transition: all 0.2s ease-in; }
+        /* Animaciones */
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .nav-active { color: #0ea5e9; font-weight: bold; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 font-sans antialiased pb-24">
+<body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 font-sans antialiased pb-24 h-screen flex flex-col overflow-hidden">
 
-    <!-- Input oculto para cargar archivos -->
+    <!-- INPUTS OCULTOS -->
     <input type="file" id="restore-input" accept=".json" class="hidden" onchange="restoreData(this)">
 
-    <!-- Encabezado -->
-    <header class="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-20">
-        <div class="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
-            <div>
-                <h1 class="text-xl font-bold text-brand-600 dark:text-brand-500 flex items-center gap-2">
-                    <i data-lucide="wallet"></i> Finanzas Claras
-                </h1>
-                <p class="text-xs text-gray-500 dark:text-gray-400">Control de Gastos e Ingresos</p>
-            </div>
+    <!-- ENCABEZADO SUPERIOR -->
+    <header class="bg-white dark:bg-gray-800 shadow-sm shrink-0 z-20">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
+            <h1 class="text-lg font-bold text-brand-600 dark:text-brand-500 flex items-center gap-2">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i> <span id="header-title">Resumen</span>
+            </h1>
             <div class="flex gap-2">
-                <!-- Botón Borrar Todo (NUEVO) -->
-                <button onclick="wipeData()" class="p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 dark:text-red-400 transition" title="Borrar Todo / Reiniciar">
-                    <i data-lucide="trash-2" class="w-5 h-5"></i>
-                </button>
-                <div class="w-px h-8 bg-gray-200 dark:bg-gray-700 mx-1"></div>
-                <!-- Botón Cargar Respaldo -->
-                <button onclick="document.getElementById('restore-input').click()" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition" title="Cargar Respaldo">
-                    <i data-lucide="upload" class="w-5 h-5"></i>
-                </button>
-                <!-- Botón Descargar -->
-                <button onclick="downloadData()" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition" title="Descargar Datos">
-                    <i data-lucide="download" class="w-5 h-5"></i>
-                </button>
-                <!-- Botón Tema -->
-                <button onclick="toggleTheme()" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-yellow-500 dark:text-yellow-300 transition" title="Cambiar Tema">
+                <button onclick="toggleTheme()" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-yellow-500 transition">
                     <i data-lucide="sun" id="theme-icon" class="w-5 h-5"></i>
                 </button>
             </div>
         </div>
     </header>
 
-    <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
-
-        <!-- Panel de Resumen (Balance) -->
-        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <!-- Balance Total -->
-            <div class="bg-gradient-to-br from-brand-500 to-brand-700 rounded-2xl p-5 text-white shadow-lg card-hover col-span-1 sm:col-span-2 lg:col-span-1">
-                <p class="text-brand-100 text-sm font-medium mb-1">Balance del Periodo</p>
-                <h2 class="text-3xl font-bold tracking-tight" id="balance-amount">$0.00</h2>
-                <div class="mt-2 text-xs text-brand-100 opacity-90 flex items-center gap-1">
-                    <i data-lucide="scale" class="w-3 h-3"></i> Disponible
-                </div>
-            </div>
-
-            <!-- Ingresos -->
-            <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow border border-gray-100 dark:border-gray-700 card-hover">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">Ingresos</p>
-                        <h2 class="text-2xl font-bold text-emerald-500" id="income-amount">$0.00</h2>
-                    </div>
-                    <div class="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg text-emerald-600 dark:text-emerald-400">
-                        <i data-lucide="arrow-up-circle"></i>
+    <!-- CONTENEDOR PRINCIPAL (SCROLLABLE) -->
+    <main id="main-container" class="flex-1 overflow-y-auto p-4 space-y-6 max-w-5xl mx-auto w-full no-scrollbar relative">
+        
+        <!-- VISTA 1: DASHBOARD (RESUMEN) -->
+        <div id="view-dashboard" class="space-y-6 fade-in">
+            <!-- Balance Cards -->
+            <section class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="bg-gradient-to-br from-brand-500 to-brand-700 rounded-2xl p-5 text-white shadow-lg">
+                    <p class="text-brand-100 text-xs font-medium uppercase tracking-wider">Disponible (Mes Actual)</p>
+                    <h2 class="text-3xl font-bold mt-1" id="balance-amount">$0.00</h2>
+                    <div class="flex justify-between mt-4 text-xs opacity-90">
+                        <span><i data-lucide="arrow-up" class="inline w-3 h-3"></i> Ing: <span id="dash-income">$0</span></span>
+                        <span><i data-lucide="arrow-down" class="inline w-3 h-3"></i> Gas: <span id="dash-expense">$0</span></span>
                     </div>
                 </div>
-            </div>
-
-            <!-- Gastos -->
-            <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow border border-gray-100 dark:border-gray-700 card-hover">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">Gastos</p>
-                        <h2 class="text-2xl font-bold text-red-500" id="expense-amount">$0.00</h2>
-                    </div>
-                    <div class="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg text-red-600 dark:text-red-400">
-                        <i data-lucide="arrow-down-circle"></i>
-                    </div>
+                <!-- Gráfica Rápida -->
+                <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow border border-gray-100 dark:border-gray-700 h-40 flex items-center justify-center relative">
+                     <canvas id="miniChart"></canvas>
+                     <div id="miniChart-empty" class="absolute text-xs text-gray-400 hidden">Sin datos este mes</div>
                 </div>
-            </div>
+            </section>
 
-            <!-- Viáticos -->
-            <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow border border-gray-100 dark:border-gray-700 card-hover">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">En Viáticos</p>
-                        <h2 class="text-xl font-bold text-orange-500" id="viaticos-amount">$0.00</h2>
-                    </div>
-                    <div class="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg text-orange-600 dark:text-orange-400">
-                        <i data-lucide="briefcase"></i>
-                    </div>
+            <!-- Presupuestos (Barras de Progreso) -->
+            <section class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-gray-700 dark:text-gray-200">Presupuestos (Alertas)</h3>
+                    <button onclick="switchTab('config')" class="text-xs text-brand-500 hover:underline">Configurar</button>
                 </div>
-            </div>
-        </section>
+                <div id="budgets-container" class="space-y-3">
+                    <!-- Se llena con JS -->
+                    <p class="text-xs text-center text-gray-400 py-2">No has definido presupuestos aún.</p>
+                </div>
+            </section>
+        </div>
 
-        <!-- Filtros -->
-        <section class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-            <div class="flex flex-col md:flex-row gap-4 items-end md:items-center justify-between">
-                <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-                    <div class="flex flex-col w-full">
-                        <label class="text-xs text-gray-500 mb-1">Desde</label>
-                        <input type="date" id="filter-date-start" onchange="applyFilters()" class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-sm rounded-lg p-2 focus:ring-2 focus:ring-brand-500 outline-none w-full">
-                    </div>
-                    <div class="flex flex-col w-full">
-                        <label class="text-xs text-gray-500 mb-1">Hasta</label>
-                        <input type="date" id="filter-date-end" onchange="applyFilters()" class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-sm rounded-lg p-2 focus:ring-2 focus:ring-brand-500 outline-none w-full">
-                    </div>
-                </div>
-                <button onclick="applyFilters()" class="w-full md:w-auto bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg text-sm font-medium transition flex justify-center items-center gap-2">
-                    <i data-lucide="filter" class="w-4 h-4"></i> Actualizar
+        <!-- VISTA 2: MOVIMIENTOS (HISTORIAL) -->
+        <div id="view-transactions" class="hidden space-y-4 fade-in">
+            <!-- Filtros -->
+            <div class="flex gap-2 bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm overflow-x-auto no-scrollbar">
+                <input type="date" id="filter-date-start" onchange="renderTransactions()" class="bg-gray-50 dark:bg-gray-700 border-none text-xs rounded p-2 outline-none">
+                <input type="date" id="filter-date-end" onchange="renderTransactions()" class="bg-gray-50 dark:bg-gray-700 border-none text-xs rounded p-2 outline-none">
+                <button onclick="exportToExcel()" class="bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-3 py-1 rounded text-xs whitespace-nowrap flex items-center gap-1">
+                    <i data-lucide="sheet" class="w-3 h-3"></i> Excel
                 </button>
             </div>
-        </section>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Panel Izquierdo: Gráfica y Top 5 -->
-            <div class="lg:col-span-1 space-y-6">
-                <!-- Gráfica -->
-                <div class="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col h-[320px]">
-                    <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Distribución de Gastos</h3>
-                    
-                    <div id="chart-container" class="relative flex-1 flex items-center justify-center">
-                        <canvas id="expensesChart"></canvas>
-                        <!-- Mensaje Empty State para Gráfica -->
-                        <div id="chart-empty-state" class="hidden absolute inset-0 flex-col items-center justify-center text-gray-400">
-                            <i data-lucide="pie-chart" class="w-10 h-10 mb-2 opacity-20"></i>
-                            <span class="text-xs text-center">Sin gastos registrados<br>en este periodo</span>
-                        </div>
-                    </div>
+            <!-- Lista -->
+            <div id="transactions-list" class="space-y-2 pb-20">
+                <!-- Se llena con JS -->
+            </div>
+        </div>
+
+        <!-- VISTA 3: METAS Y DEUDAS -->
+        <div id="view-goals" class="hidden space-y-6 fade-in">
+            <!-- Sección Deudas -->
+            <section class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-red-100 dark:border-red-900/30">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-red-600 dark:text-red-400 flex items-center gap-2"><i data-lucide="credit-card" class="w-4 h-4"></i> Deudas</h3>
+                    <button onclick="openDebtModal()" class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded hover:bg-red-200">+ Nueva</button>
                 </div>
+                <div id="debts-list" class="space-y-3">
+                    <p class="text-xs text-center text-gray-400">¡Libre de deudas! 🎉</p>
+                </div>
+            </section>
 
-                <!-- Top 5 -->
-                <div class="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-                    <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
-                        <i data-lucide="trophy" class="w-4 h-4 text-yellow-500"></i> Top 5 Gastos
-                    </h3>
-                    <ul class="space-y-3" id="top-5-list">
-                        <!-- Se llena con JS -->
-                        <li class="text-center text-gray-400 text-sm py-4">No hay datos suficientes</li>
-                    </ul>
+            <!-- Sección Metas de Ahorro -->
+            <section class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-emerald-100 dark:border-emerald-900/30">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-2"><i data-lucide="piggy-bank" class="w-4 h-4"></i> Metas</h3>
+                    <button onclick="openGoalModal()" class="text-xs bg-emerald-100 text-emerald-600 px-2 py-1 rounded hover:bg-emerald-200">+ Nueva</button>
+                </div>
+                <div id="goals-list" class="space-y-3">
+                    <p class="text-xs text-center text-gray-400">Define una meta para motivarte.</p>
+                </div>
+            </section>
+        </div>
+
+        <!-- VISTA 4: CONFIGURACIÓN -->
+        <div id="view-config" class="hidden space-y-4 fade-in">
+            <!-- Categorías -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
+                <h3 class="font-bold mb-3 text-sm">Categorías Personalizadas (Gastos)</h3>
+                <div class="flex gap-2 mb-3">
+                    <input type="text" id="new-cat-name" placeholder="Nueva categoría..." class="flex-1 bg-gray-50 dark:bg-gray-700 p-2 rounded text-sm outline-none border border-gray-200 dark:border-gray-600">
+                    <input type="color" id="new-cat-color" value="#3b82f6" class="h-9 w-9 rounded cursor-pointer border-none bg-transparent">
+                    <button onclick="addCategory()" class="bg-brand-600 text-white p-2 rounded"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                </div>
+                <div id="config-categories-list" class="flex flex-wrap gap-2">
+                    <!-- Chips de categorías -->
                 </div>
             </div>
 
-            <!-- Panel Derecho: Lista de Movimientos -->
-            <div class="lg:col-span-2">
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden flex flex-col h-full min-h-[500px]">
-                    <div class="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex justify-between items-center sticky top-0">
-                        <h3 class="font-bold text-gray-700 dark:text-gray-300">Historial</h3>
-                        <span class="text-xs bg-brand-100 dark:bg-brand-900 text-brand-600 dark:text-brand-300 px-2 py-1 rounded-full" id="list-count">0 items</span>
-                    </div>
-                    
-                    <div class="overflow-y-auto flex-1 p-2" id="transactions-list">
-                        <!-- Lista vacía -->
-                        <div class="flex flex-col items-center justify-center h-64 text-gray-400">
-                            <i data-lucide="clipboard-list" class="w-12 h-12 mb-2 opacity-50"></i>
-                            <p>No hay movimientos registrados.</p>
-                            <p class="text-xs mt-1">Usa el botón <span class="font-bold">+</span> para comenzar.</p>
-                        </div>
-                    </div>
+            <!-- Gestión de Datos -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
+                <h3 class="font-bold mb-3 text-sm">Datos y Respaldo</h3>
+                <div class="p-3 mb-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-xs rounded-lg">
+                    <i data-lucide="info" class="inline w-3 h-3 mr-1"></i>
+                    El respaldo ahora guarda Metas, Deudas y Categorías.
+                </div>
+                <div class="space-y-2">
+                    <button onclick="downloadBackup()" class="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg text-sm transition hover:bg-gray-100">
+                        <span><i data-lucide="download" class="inline w-4 h-4 mr-2"></i> Descargar Respaldo Completo</span>
+                    </button>
+                    <button onclick="document.getElementById('restore-input').click()" class="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg text-sm transition hover:bg-gray-100">
+                        <span><i data-lucide="upload" class="inline w-4 h-4 mr-2"></i> Restaurar Respaldo</span>
+                    </button>
+                    <button onclick="wipeData()" class="w-full flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-lg text-sm border border-red-100 dark:border-red-900/30 transition hover:bg-red-100">
+                        <span><i data-lucide="trash" class="inline w-4 h-4 mr-2"></i> Borrar Todo (Reset)</span>
+                    </button>
                 </div>
             </div>
         </div>
 
     </main>
 
-    <!-- Botón Flotante (FAB) -->
-    <button onclick="openModal()" class="fixed bottom-6 right-6 bg-brand-600 hover:bg-brand-700 text-white w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-brand-300 z-50">
-        <i data-lucide="plus" class="w-8 h-8"></i>
-    </button>
-
-    <!-- Modal Formulario -->
-    <div id="expense-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4 backdrop-blur-sm transition-opacity duration-300">
-        <div class="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div class="p-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center shrink-0">
-                <h3 class="text-lg font-bold text-gray-800 dark:text-white" id="modal-title">Registrar Movimiento</h3>
-                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1">
-                    <i data-lucide="x"></i>
+    <!-- BARRA DE NAVEGACIÓN INFERIOR -->
+    <nav class="fixed bottom-0 w-full bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 pb-safe z-30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+        <div class="max-w-5xl mx-auto flex justify-around items-center h-16">
+            <button onclick="switchTab('dashboard')" class="nav-btn flex flex-col items-center gap-1 text-gray-400 w-full" id="nav-dashboard">
+                <i data-lucide="home" class="w-5 h-5"></i>
+                <span class="text-[10px]">Inicio</span>
+            </button>
+            <button onclick="switchTab('transactions')" class="nav-btn flex flex-col items-center gap-1 text-gray-400 w-full" id="nav-transactions">
+                <i data-lucide="list" class="w-5 h-5"></i>
+                <span class="text-[10px]">Historial</span>
+            </button>
+            
+            <!-- Botón Central Flotante (Agregar) -->
+            <div class="relative -top-5">
+                <button onclick="openTransactionModal()" class="bg-brand-600 hover:bg-brand-700 text-white w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-transform hover:scale-110 active:scale-95 ring-4 ring-white dark:ring-gray-900">
+                    <i data-lucide="plus" class="w-7 h-7"></i>
                 </button>
             </div>
-            
-            <div class="overflow-y-auto p-6">
-                <form id="expense-form" onsubmit="saveTransaction(event)" class="space-y-5">
-                    <input type="hidden" id="transaction-id">
-                    
-                    <!-- Selector de Tipo -->
-                    <div class="flex p-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
-                        <button type="button" id="type-expense" onclick="setTransactionType('expense')" class="flex-1 py-2 text-sm font-bold rounded-md shadow-sm transition-all bg-white text-red-600 dark:bg-gray-600 dark:text-red-400 ring-1 ring-black/5">
-                            Gasto
-                        </button>
-                        <button type="button" id="type-income" onclick="setTransactionType('income')" class="flex-1 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 rounded-md transition-all hover:text-gray-700 hover:bg-white/50">
-                            Ingreso
-                        </button>
-                    </div>
-                    <input type="hidden" id="transaction-type" value="expense">
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Monto ($)</label>
-                        <input type="number" id="amount" min="0.01" step="any" required class="w-full text-2xl font-bold text-gray-800 dark:text-white bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-brand-500 outline-none transition-shadow" placeholder="0.00">
-                    </div>
+            <button onclick="switchTab('goals')" class="nav-btn flex flex-col items-center gap-1 text-gray-400 w-full" id="nav-goals">
+                <i data-lucide="target" class="w-5 h-5"></i>
+                <span class="text-[10px]">Metas</span>
+            </button>
+            <button onclick="switchTab('config')" class="nav-btn flex flex-col items-center gap-1 text-gray-400 w-full" id="nav-config">
+                <i data-lucide="settings" class="w-5 h-5"></i>
+                <span class="text-[10px]">Config</span>
+            </button>
+        </div>
+    </nav>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción</label>
-                        <input type="text" id="description" required maxlength="50" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-brand-500 outline-none dark:text-white transition-shadow" placeholder="Ej. Tacos, Gasolina...">
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha</label>
-                            <input type="date" id="date" required class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-brand-500 outline-none dark:text-white transition-shadow">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoría</label>
-                            <div class="relative">
-                                <select id="category" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-3 pr-8 focus:ring-2 focus:ring-brand-500 outline-none dark:text-white appearance-none transition-shadow">
-                                    <!-- Se llena con JS -->
-                                </select>
-                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                                    <i data-lucide="chevron-down" class="w-4 h-4"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Checkbox Viáticos -->
-                    <div id="viaticos-container" class="flex items-center gap-3 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-100 dark:border-orange-800/30 cursor-pointer hover:bg-orange-100 dark:hover:bg-orange-900/40 transition" onclick="document.getElementById('is-viaticos').click()">
-                        <input type="checkbox" id="is-viaticos" class="w-5 h-5 text-brand-600 rounded focus:ring-brand-500 accent-orange-500">
-                        <div class="select-none">
-                            <p class="text-sm font-medium text-gray-800 dark:text-gray-200">Es Viático / Viaje</p>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Marcar si es reembolsable</p>
-                        </div>
-                    </div>
-
-                    <div class="pt-2 flex gap-3 pb-2">
-                        <button type="button" onclick="closeModal()" class="flex-1 px-4 py-3 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 font-medium transition active:scale-95">Cancelar</button>
-                        <button type="submit" class="flex-1 px-4 py-3 text-white bg-brand-600 rounded-lg hover:bg-brand-700 font-medium shadow-lg shadow-brand-500/30 transition active:scale-95">Guardar</button>
-                    </div>
-                </form>
+    <!-- MODALES -->
+    
+    <!-- Modal Transacción -->
+    <div id="modal-transaction" class="fixed inset-0 bg-black/60 hidden items-end sm:items-center justify-center z-50 p-0 sm:p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+                <h3 class="font-bold dark:text-white">Nuevo Movimiento</h3>
+                <button onclick="closeModal('modal-transaction')" class="p-1 text-gray-400"><i data-lucide="x"></i></button>
             </div>
+            <form onsubmit="saveTransaction(event)" class="p-4 space-y-4 overflow-y-auto">
+                <input type="hidden" id="tx-id">
+                <!-- Toggle Gasto/Ingreso -->
+                <div class="flex bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+                    <button type="button" id="btn-type-expense" onclick="setTxType('expense')" class="flex-1 py-2 text-sm font-bold rounded shadow bg-white text-red-500">Gasto</button>
+                    <button type="button" id="btn-type-income" onclick="setTxType('income')" class="flex-1 py-2 text-sm text-gray-500">Ingreso</button>
+                </div>
+                <input type="hidden" id="tx-type" value="expense">
+
+                <input type="number" id="tx-amount" step="any" required placeholder="$0.00" class="w-full text-3xl font-bold text-center bg-transparent border-b border-gray-200 dark:border-gray-700 outline-none p-2 dark:text-white">
+
+                <div class="grid grid-cols-2 gap-3">
+                    <input type="date" id="tx-date" required class="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg text-sm dark:text-white outline-none">
+                    <select id="tx-category" class="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg text-sm dark:text-white outline-none">
+                        <!-- Llenado dinámico -->
+                    </select>
+                </div>
+
+                <input type="text" id="tx-desc" required placeholder="Descripción (ej. Tacos)" class="w-full bg-gray-50 dark:bg-gray-700 p-3 rounded-lg text-sm dark:text-white outline-none">
+
+                <div id="viaticos-check" class="flex items-center gap-2 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg text-sm">
+                    <input type="checkbox" id="tx-viatico" class="w-4 h-4">
+                    <label for="tx-viatico" class="text-orange-700 dark:text-orange-300">Es viático / viaje</label>
+                </div>
+
+                <div id="budget-set-container" class="hidden">
+                    <label class="text-xs text-gray-500 block mb-1">Presupuesto Mensual para esta categoría:</label>
+                    <input type="number" id="cat-budget-input" placeholder="Opcional: Límite mensual" class="w-full bg-gray-50 dark:bg-gray-700 p-2 rounded text-xs dark:text-white">
+                </div>
+
+                <button type="submit" class="w-full bg-brand-600 text-white py-3 rounded-lg font-bold shadow-lg hover:bg-brand-700">Guardar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Deuda -->
+    <div id="modal-debt" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-sm p-5 shadow-2xl">
+            <h3 class="font-bold mb-4 dark:text-white">Registrar Deuda</h3>
+            <form onsubmit="saveDebt(event)" class="space-y-3">
+                <input type="text" id="debt-name" required placeholder="Nombre (ej. Tarjeta Oro)" class="w-full p-2 border rounded dark:bg-gray-700 dark:text-white">
+                <input type="number" id="debt-total" required placeholder="Monto Total a Deber" step="any" class="w-full p-2 border rounded dark:bg-gray-700 dark:text-white">
+                <div class="flex gap-2 pt-2">
+                    <button type="button" onclick="closeModal('modal-debt')" class="flex-1 bg-gray-200 dark:bg-gray-700 py-2 rounded">Cancelar</button>
+                    <button type="submit" class="flex-1 bg-red-500 text-white py-2 rounded">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Meta -->
+    <div id="modal-goal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-sm p-5 shadow-2xl">
+            <h3 class="font-bold mb-4 dark:text-white">Nueva Meta de Ahorro</h3>
+            <form onsubmit="saveGoal(event)" class="space-y-3">
+                <input type="text" id="goal-name" required placeholder="Meta (ej. Viaje Cancún)" class="w-full p-2 border rounded dark:bg-gray-700 dark:text-white">
+                <input type="number" id="goal-target" required placeholder="Monto Objetivo" step="any" class="w-full p-2 border rounded dark:bg-gray-700 dark:text-white">
+                <input type="number" id="goal-current" placeholder="Ahorro Inicial (Opcional)" step="any" class="w-full p-2 border rounded dark:bg-gray-700 dark:text-white">
+                <div class="flex gap-2 pt-2">
+                    <button type="button" onclick="closeModal('modal-goal')" class="flex-1 bg-gray-200 dark:bg-gray-700 py-2 rounded">Cancelar</button>
+                    <button type="submit" class="flex-1 bg-emerald-500 text-white py-2 rounded">Guardar</button>
+                </div>
+            </form>
         </div>
     </div>
 
     <script>
-        // --- 1. CONFIGURACIÓN Y ESTADO ---
-        let transactions = JSON.parse(localStorage.getItem('myExpenses')) || [];
-        transactions = transactions.map(t => ({...t, type: t.type || 'expense'}));
-
-        let chartInstance = null;
-
-        // Categorías
-        const expenseCategories = {
-            'Alimentos': '#F87171', 'Transporte': '#60A5FA', 'Vivienda': '#34D399',
-            'Servicios': '#FBBF24', 'Salud': '#F472B6', 'Educación': '#818CF8',
-            'Entretenimiento': '#A78BFA', 'Ropa': '#FB7185', 'Deudas': '#94A3B8',
-            'Ahorro': '#4ADE80', 'Otros': '#CBD5E1'
+        // --- BASE DE DATOS LOCAL ---
+        const DB = {
+            transactions: JSON.parse(localStorage.getItem('myExpenses')) || [], 
+            categories: JSON.parse(localStorage.getItem('myCategories')) || {},
+            debts: JSON.parse(localStorage.getItem('myDebts')) || [],
+            goals: JSON.parse(localStorage.getItem('myGoals')) || [],
+            budgets: JSON.parse(localStorage.getItem('myBudgets')) || {}
         };
 
-        const incomeCategories = {
+        const defaultCats = {
+            'Alimentos': '#F87171', 'Transporte': '#60A5FA', 'Vivienda': '#34D399',
+            'Servicios': '#FBBF24', 'Salud': '#F472B6', 'Entretenimiento': '#A78BFA', 
+            'Otros': '#CBD5E1'
+        };
+
+        // CORRECCIÓN: Categorías Exclusivas de Ingreso
+        const incomeCats = {
             'Nómina': '#10B981', 'Ventas': '#34D399', 'Reembolso': '#6EE7B7',
             'Regalo': '#A7F3D0', 'Inversión': '#059669', 'Otros Ingresos': '#D1FAE5'
         };
 
-        // --- 2. INICIALIZACIÓN ---
+        // --- INIT ---
         document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
             initTheme();
+            initData();
             setDefaultDates();
-            renderApp();
-            populateCategories('expense'); 
+            switchTab('dashboard'); 
         });
 
-        function setDefaultDates() {
-            const today = new Date();
-            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        function initData() {
+            // Migración de datos viejos (si existen)
+            if(Array.isArray(DB.transactions)) {
+                DB.transactions = DB.transactions.map(t => ({...t, type: t.type || 'expense'}));
+            }
             
-            document.getElementById('date').valueAsDate = today;
-            document.getElementById('filter-date-start').valueAsDate = firstDay;
-            document.getElementById('filter-date-end').valueAsDate = today;
+            // Cargar categorías default si está vacío
+            if (Object.keys(DB.categories).length === 0) {
+                DB.categories = {...defaultCats};
+                saveDB('categories');
+            }
         }
 
-        // --- 3. LÓGICA DE NEGOCIO (CRUD + RESTORE + WIPE) ---
+        function saveDB(key) {
+            if(key === 'all') {
+                localStorage.setItem('myExpenses', JSON.stringify(DB.transactions));
+                localStorage.setItem('myCategories', JSON.stringify(DB.categories));
+                localStorage.setItem('myDebts', JSON.stringify(DB.debts));
+                localStorage.setItem('myGoals', JSON.stringify(DB.goals));
+                localStorage.setItem('myBudgets', JSON.stringify(DB.budgets));
+            } else {
+                let storeKey = 'myExpenses'; 
+                if(key === 'categories') storeKey = 'myCategories';
+                if(key === 'debts') storeKey = 'myDebts';
+                if(key === 'goals') storeKey = 'myGoals';
+                if(key === 'budgets') storeKey = 'myBudgets';
+                localStorage.setItem(storeKey, JSON.stringify(DB[key]));
+            }
+        }
+
+        // --- NAVEGACIÓN ---
+        function switchTab(tabId) {
+            ['dashboard', 'transactions', 'goals', 'config'].forEach(id => {
+                document.getElementById('view-' + id).classList.add('hidden');
+                const btn = document.getElementById('nav-' + id);
+                if(btn) {
+                    btn.classList.remove('nav-active');
+                    btn.classList.add('text-gray-400');
+                }
+            });
+
+            document.getElementById('view-' + tabId).classList.remove('hidden');
+            const activeBtn = document.getElementById('nav-' + tabId);
+            if(activeBtn) {
+                activeBtn.classList.add('nav-active');
+                activeBtn.classList.remove('text-gray-400');
+            }
+
+            const titles = { 'dashboard': 'Resumen', 'transactions': 'Historial', 'goals': 'Metas y Deudas', 'config': 'Configuración' };
+            document.getElementById('header-title').innerText = titles[tabId];
+
+            if(tabId === 'dashboard') renderDashboard();
+            if(tabId === 'transactions') renderTransactions();
+            if(tabId === 'goals') renderGoalsView();
+            if(tabId === 'config') renderConfig();
+        }
+
+        // --- DASHBOARD ---
+        let miniChart = null;
+        function renderDashboard() {
+            const today = new Date();
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+            const currentMonthTx = DB.transactions.filter(t => {
+                const d = new Date(t.date);
+                return d >= firstDay && d <= lastDay;
+            });
+
+            const income = currentMonthTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+            const expense = currentMonthTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+            const balance = income - expense;
+
+            document.getElementById('balance-amount').innerText = formatMoney(balance);
+            document.getElementById('dash-income').innerText = formatMoney(income);
+            document.getElementById('dash-expense').innerText = formatMoney(expense);
+
+            updateMiniChart(currentMonthTx);
+            renderBudgets(currentMonthTx);
+        }
+
+        function updateMiniChart(txs) {
+            const ctx = document.getElementById('miniChart');
+            const expenses = txs.filter(t => t.type === 'expense');
+            
+            if(expenses.length === 0) {
+                document.getElementById('miniChart-empty').classList.remove('hidden');
+                ctx.style.opacity = 0;
+                return;
+            } else {
+                document.getElementById('miniChart-empty').classList.add('hidden');
+                ctx.style.opacity = 1;
+            }
+
+            const dataMap = {};
+            expenses.forEach(t => { dataMap[t.category] = (dataMap[t.category] || 0) + t.amount });
+            
+            if(miniChart) miniChart.destroy();
+            miniChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(dataMap),
+                    datasets: [{
+                        data: Object.values(dataMap),
+                        backgroundColor: Object.keys(dataMap).map(c => DB.categories[c] || '#ccc'),
+                        borderWidth: 0
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+        }
+
+        function renderBudgets(monthTxs) {
+            const container = document.getElementById('budgets-container');
+            container.innerHTML = '';
+            
+            const catsWithBudget = Object.keys(DB.budgets);
+            if(catsWithBudget.length === 0) {
+                container.innerHTML = `<p class="text-xs text-center text-gray-400 py-2">Ve a Configuración para definir límites.</p>`;
+                return;
+            }
+
+            const spentMap = {};
+            monthTxs.filter(t => t.type === 'expense').forEach(t => spentMap[t.category] = (spentMap[t.category] || 0) + t.amount);
+
+            catsWithBudget.forEach(cat => {
+                const limit = DB.budgets[cat];
+                const spent = spentMap[cat] || 0;
+                const percent = Math.min((spent / limit) * 100, 100);
+                
+                let barColor = 'bg-emerald-500';
+                if(percent > 75) barColor = 'bg-yellow-500';
+                if(percent >= 100) barColor = 'bg-red-500';
+
+                const div = document.createElement('div');
+                div.className = "text-sm";
+                div.innerHTML = `
+                    <div class="flex justify-between mb-1">
+                        <span class="font-medium dark:text-gray-200">${cat}</span>
+                        <span class="text-xs text-gray-500">${formatMoney(spent)} / ${formatMoney(limit)}</span>
+                    </div>
+                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                        <div class="${barColor} h-2.5 rounded-full" style="width: ${percent}%"></div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // --- MOVIMIENTOS ---
+        function renderTransactions() {
+            const start = document.getElementById('filter-date-start').value;
+            const end = document.getElementById('filter-date-end').value;
+            const list = document.getElementById('transactions-list');
+            list.innerHTML = '';
+
+            const filtered = DB.transactions.filter(t => t.date >= start && t.date <= end)
+                                           .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            if(filtered.length === 0) {
+                list.innerHTML = `<div class="text-center text-gray-400 py-10">Sin movimientos</div>`;
+                return;
+            }
+
+            filtered.forEach(t => {
+                const isExp = t.type === 'expense';
+                const color = isExp ? 'text-gray-800 dark:text-gray-100' : 'text-emerald-600 font-bold';
+                const sign = isExp ? '-' : '+';
+                // CORRECCIÓN: Buscar color en ambas listas
+                const catColor = DB.categories[t.category] || incomeCats[t.category] || '#999';
+
+                const div = document.createElement('div');
+                div.className = "flex justify-between items-center bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border-b border-gray-50 dark:border-gray-700";
+                div.innerHTML = `
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0" style="background-color:${catColor}">
+                            ${t.category.substring(0,2).toUpperCase()}
+                        </div>
+                        <div class="min-w-0">
+                            <p class="font-medium truncate text-sm dark:text-gray-200">${t.description}</p>
+                            <p class="text-xs text-gray-400">${t.date} • ${t.category}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="${color} text-sm">${sign}${formatMoney(t.amount)}</p>
+                        <button onclick="deleteTransaction('${t.id}')" class="text-xs text-red-400 opacity-50 hover:opacity-100">Borrar</button>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        // --- METAS Y DEUDAS ---
+        function renderGoalsView() {
+            const debtsList = document.getElementById('debts-list');
+            debtsList.innerHTML = '';
+            if(DB.debts.length === 0) debtsList.innerHTML = `<p class="text-xs text-center text-gray-400">Sin deudas registradas.</p>`;
+            
+            DB.debts.forEach((d, idx) => {
+                const percent = Math.min(((d.paid / d.total) * 100), 100) || 0;
+                const remaining = Math.max(d.total - (d.paid || 0), 0);
+                
+                const el = document.createElement('div');
+                el.className = "bg-red-50 dark:bg-red-900/10 p-3 rounded-lg border border-red-100 dark:border-red-900/30";
+                el.innerHTML = `
+                    <div class="flex justify-between text-sm font-bold text-red-700 dark:text-red-300 mb-1">
+                        <span>${d.name}</span>
+                        <span>Restan: ${formatMoney(remaining)}</span>
+                    </div>
+                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2">
+                        <div class="bg-red-500 h-2 rounded-full" style="width: ${percent}%"></div>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                         <button onclick="payDebt(${idx})" class="text-xs bg-white dark:bg-gray-800 border border-red-200 text-red-600 px-2 py-1 rounded">Abonar</button>
+                         <button onclick="deleteDebt(${idx})" class="text-xs text-gray-400 px-2">X</button>
+                    </div>
+                `;
+                debtsList.appendChild(el);
+            });
+
+            const goalsList = document.getElementById('goals-list');
+            goalsList.innerHTML = '';
+            if(DB.goals.length === 0) goalsList.innerHTML = `<p class="text-xs text-center text-gray-400">Sin metas activas.</p>`;
+
+            DB.goals.forEach((g, idx) => {
+                const percent = Math.min(((g.saved / g.target) * 100), 100) || 0;
+                const el = document.createElement('div');
+                el.className = "bg-emerald-50 dark:bg-emerald-900/10 p-3 rounded-lg border border-emerald-100 dark:border-emerald-900/30";
+                el.innerHTML = `
+                    <div class="flex justify-between text-sm font-bold text-emerald-700 dark:text-emerald-300 mb-1">
+                        <span>${g.name}</span>
+                        <span>${formatMoney(g.saved)} / ${formatMoney(g.target)}</span>
+                    </div>
+                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2">
+                        <div class="bg-emerald-500 h-2 rounded-full" style="width: ${percent}%"></div>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                         <button onclick="addSavings(${idx})" class="text-xs bg-white dark:bg-gray-800 border border-emerald-200 text-emerald-600 px-2 py-1 rounded">Ahorrar</button>
+                         <button onclick="deleteGoal(${idx})" class="text-xs text-gray-400 px-2">X</button>
+                    </div>
+                `;
+                goalsList.appendChild(el);
+            });
+        }
+
+        // --- CONFIGURACIÓN Y CATEGORÍAS ---
+        function renderConfig() {
+            const list = document.getElementById('config-categories-list');
+            list.innerHTML = '';
+            
+            Object.keys(DB.categories).forEach(cat => {
+                const color = DB.categories[cat];
+                const tag = document.createElement('div');
+                tag.className = "flex items-center gap-1 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs border border-gray-200 dark:border-gray-600";
+                tag.innerHTML = `
+                    <div class="w-3 h-3 rounded-full" style="background-color:${color}"></div>
+                    <span class="dark:text-white">${cat}</span>
+                    <button onclick="deleteCategory('${cat}')" class="ml-1 text-red-400 hover:text-red-600">×</button>
+                `;
+                list.appendChild(tag);
+            });
+        }
+
+        function addCategory() {
+            const name = document.getElementById('new-cat-name').value.trim();
+            const color = document.getElementById('new-cat-color').value;
+            if(name && !DB.categories[name]) {
+                DB.categories[name] = color;
+                saveDB('categories');
+                renderConfig();
+                document.getElementById('new-cat-name').value = '';
+            } else {
+                alert('Nombre inválido o ya existe');
+            }
+        }
+
+        function deleteCategory(name) {
+            if(confirm('¿Borrar categoría ' + name + '?')) {
+                delete DB.categories[name];
+                saveDB('categories');
+                renderConfig();
+            }
+        }
+
+        // --- GESTIÓN DE MODALES Y FORMULARIOS ---
+
+        function openTransactionModal() {
+            document.getElementById('modal-transaction').classList.remove('hidden');
+            document.getElementById('modal-transaction').classList.add('flex');
+            document.getElementById('tx-date').valueAsDate = new Date();
+            
+            // Iniciar por defecto como Gasto y rellenar categorías
+            document.getElementById('tx-amount').value = '';
+            document.getElementById('tx-desc').value = '';
+            setTxType('expense'); // Esto dispara la carga de categorías
+            checkBudgetSetting();
+        }
+
+        function checkBudgetSetting() {
+            const type = document.getElementById('tx-type').value;
+            const cat = document.getElementById('tx-category').value;
+            const container = document.getElementById('budget-set-container');
+            const input = document.getElementById('cat-budget-input');
+
+            if(type === 'expense') {
+                container.classList.remove('hidden');
+                input.value = DB.budgets[cat] || '';
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+        document.getElementById('tx-category').addEventListener('change', checkBudgetSetting);
+
+        // NUEVA FUNCIÓN: Rellenar select dinámicamente
+        function populateCategorySelect(type) {
+            const select = document.getElementById('tx-category');
+            select.innerHTML = '';
+            
+            // Si es gasto usa DB.categories (customizables), si es ingreso usa incomeCats (fijas)
+            const source = (type === 'expense') ? DB.categories : incomeCats;
+            
+            Object.keys(source).forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.innerText = c;
+                select.appendChild(opt);
+            });
+        }
+
+        function setTxType(type) {
+            document.getElementById('tx-type').value = type;
+            const btnExp = document.getElementById('btn-type-expense');
+            const btnInc = document.getElementById('btn-type-income');
+            const viatico = document.getElementById('viaticos-check');
+
+            if(type === 'expense') {
+                btnExp.className = "flex-1 py-2 text-sm font-bold rounded shadow bg-white text-red-500 transition-all";
+                btnInc.className = "flex-1 py-2 text-sm text-gray-500 hover:bg-gray-200 transition-all";
+                viatico.classList.remove('hidden');
+            } else {
+                btnInc.className = "flex-1 py-2 text-sm font-bold rounded shadow bg-white text-emerald-500 transition-all";
+                btnExp.className = "flex-1 py-2 text-sm text-gray-500 hover:bg-gray-200 transition-all";
+                viatico.classList.add('hidden');
+            }
+            
+            // Llamar al rellenado
+            populateCategorySelect(type);
+            checkBudgetSetting();
+        }
 
         function saveTransaction(e) {
             e.preventDefault();
+            const amount = parseFloat(document.getElementById('tx-amount').value);
+            const desc = document.getElementById('tx-desc').value;
+            const date = document.getElementById('tx-date').value;
+            const category = document.getElementById('tx-category').value;
+            const type = document.getElementById('tx-type').value;
+            const isViatico = document.getElementById('tx-viatico').checked;
             
-            const id = document.getElementById('transaction-id').value;
-            let amount = parseFloat(document.getElementById('amount').value);
-            const description = document.getElementById('description').value.trim();
-            const date = document.getElementById('date').value;
-            const category = document.getElementById('category').value;
-            const type = document.getElementById('transaction-type').value;
-            const isViaticos = type === 'expense' ? document.getElementById('is-viaticos').checked : false;
-
-            if (amount <= 0 || isNaN(amount)) {
-                alert("Por favor ingresa un monto válido mayor a 0.");
-                return;
-            }
-            if (description === "") {
-                alert("La descripción es obligatoria.");
-                return;
-            }
-
-            amount = Math.abs(amount);
-
-            if (id) {
-                const index = transactions.findIndex(t => t.id === id);
-                if (index !== -1) {
-                    transactions[index] = { id, amount, description, date, category, isViaticos, type };
+            if(type === 'expense') {
+                const budgetVal = parseFloat(document.getElementById('cat-budget-input').value);
+                if(!isNaN(budgetVal) && budgetVal > 0) {
+                    DB.budgets[category] = budgetVal;
+                    saveDB('budgets');
                 }
-            } else {
-                const newTransaction = {
-                    id: Date.now().toString(),
-                    amount,
-                    description,
-                    date,
-                    category,
-                    isViaticos,
-                    type
-                };
-                transactions.push(newTransaction);
             }
 
-            saveToLocalStorage();
+            const newTx = {
+                id: Date.now().toString(),
+                amount: Math.abs(amount),
+                description: desc,
+                date: date,
+                category: category,
+                type: type,
+                isViaticos: (type === 'expense' && isViatico)
+            };
+
+            DB.transactions.push(newTx);
+            saveDB('transactions');
             
-            // --- CORRECCIÓN: Ajustar Filtros Automáticamente ---
-            // Si la fecha del nuevo registro está fuera del rango actual, expandimos el filtro
-            // para que el usuario pueda ver su registro inmediatamente.
-            const startDateInput = document.getElementById('filter-date-start');
-            const endDateInput = document.getElementById('filter-date-end');
+            // Auto ajustar filtros (UX Fix)
+            const start = document.getElementById('filter-date-start');
+            const end = document.getElementById('filter-date-end');
+            if(date < start.value) start.value = date;
+            if(date > end.value) end.value = date;
+
+            closeModal('modal-transaction');
             
-            if (date < startDateInput.value) {
-                startDateInput.value = date;
-                // Opcional: Avisar usuario
-                // console.log("Filtro ajustado al pasado");
-            }
-            if (date > endDateInput.value) {
-                endDateInput.value = date;
-                // console.log("Filtro ajustado al futuro");
-            }
-            // ----------------------------------------------------
-
-            closeModal();
-            renderApp();
-        }
-
-        function editTransaction(id) {
-            const t = transactions.find(item => item.id === id);
-            if (!t) return;
-
-            document.getElementById('modal-title').innerText = "Editar Movimiento";
-            document.getElementById('transaction-id').value = t.id;
-            setTransactionType(t.type); 
-            document.getElementById('amount').value = t.amount;
-            document.getElementById('description').value = t.description;
-            document.getElementById('date').value = t.date;
-            document.getElementById('category').value = t.category;
-            
-            if(t.type === 'expense') {
-                document.getElementById('is-viaticos').checked = t.isViaticos;
-            }
-            openModal(false);
+            const currentTab = document.querySelector('.nav-active').id.replace('nav-', '');
+            if(currentTab === 'dashboard') renderDashboard();
+            if(currentTab === 'transactions') renderTransactions();
         }
 
         function deleteTransaction(id) {
-            if (confirm('¿Estás seguro de eliminar este registro?')) {
-                transactions = transactions.filter(t => t.id !== id);
-                saveToLocalStorage();
-                renderApp();
+            if(confirm('¿Eliminar registro?')) {
+                DB.transactions = DB.transactions.filter(t => t.id !== id);
+                saveDB('transactions');
+                renderTransactions();
             }
         }
 
-        // NUEVA FUNCIÓN: BORRAR TODO (WIPE)
-        function wipeData() {
-            if (confirm("⚠️ ¡CUIDADO! ⚠️\n\n¿Estás seguro de que quieres BORRAR TODOS los datos?\n\nEsta acción no se puede deshacer y borrará todo el historial.")) {
-                transactions = [];
-                saveToLocalStorage();
-                renderApp();
-                // Feedback visual
-                alert("La base de datos ha sido borrada correctamente.");
+        // --- LOGICA DEUDAS ---
+        function openDebtModal() {
+            document.getElementById('modal-debt').classList.remove('hidden');
+            document.getElementById('modal-debt').classList.add('flex');
+        }
+        function saveDebt(e) {
+            e.preventDefault();
+            const name = document.getElementById('debt-name').value;
+            const total = parseFloat(document.getElementById('debt-total').value);
+            DB.debts.push({ name, total, paid: 0 });
+            saveDB('debts');
+            closeModal('modal-debt');
+            renderGoalsView();
+        }
+        function payDebt(idx) {
+            const amount = parseFloat(prompt("¿Cuánto vas a abonar?"));
+            if(amount) {
+                const debt = DB.debts[idx];
+                const remaining = debt.total - (debt.paid || 0);
+                
+                // Logic check: No abonar más de la deuda
+                if(amount > remaining) {
+                    alert(`¡Error! Solo debes ${formatMoney(remaining)}.`);
+                    return;
+                }
+
+                DB.debts[idx].paid = (DB.debts[idx].paid || 0) + amount;
+                
+                if(confirm("¿Registrar esto como Gasto en el historial?")) {
+                     DB.transactions.push({
+                         id: Date.now().toString(),
+                         amount: amount,
+                         description: 'Abono: ' + DB.debts[idx].name,
+                         date: new Date().toISOString().split('T')[0],
+                         category: 'Deudas',
+                         type: 'expense',
+                         isViaticos: false
+                     });
+                     saveDB('transactions');
+                }
+                saveDB('debts');
+                renderGoalsView();
+            }
+        }
+        function deleteDebt(idx) {
+            if(confirm('¿Borrar esta deuda del registro?')) {
+                DB.debts.splice(idx, 1);
+                saveDB('debts');
+                renderGoalsView();
             }
         }
 
-        // CARGAR RESPALDO
+        // --- LOGICA METAS ---
+        function openGoalModal() {
+            document.getElementById('modal-goal').classList.remove('hidden');
+            document.getElementById('modal-goal').classList.add('flex');
+        }
+        function saveGoal(e) {
+            e.preventDefault();
+            const name = document.getElementById('goal-name').value;
+            const target = parseFloat(document.getElementById('goal-target').value);
+            const current = parseFloat(document.getElementById('goal-current').value) || 0;
+            DB.goals.push({ name, target, saved: current });
+            saveDB('goals');
+            closeModal('modal-goal');
+            renderGoalsView();
+        }
+        function addSavings(idx) {
+            const amount = parseFloat(prompt("¿Cuánto vas a ahorrar hoy?"));
+            if(amount) {
+                DB.goals[idx].saved += amount;
+                
+                if(confirm("¿Registrar como movimiento de 'Ahorro' (Gasto)?")) {
+                    DB.transactions.push({
+                         id: Date.now().toString(),
+                         amount: amount,
+                         description: 'Ahorro: ' + DB.goals[idx].name,
+                         date: new Date().toISOString().split('T')[0],
+                         category: 'Ahorro',
+                         type: 'expense',
+                         isViaticos: false
+                     });
+                     saveDB('transactions');
+                }
+                saveDB('goals');
+                renderGoalsView();
+            }
+        }
+        function deleteGoal(idx) {
+            if(confirm('¿Borrar meta?')) {
+                DB.goals.splice(idx, 1);
+                saveDB('goals');
+                renderGoalsView();
+            }
+        }
+
+        // --- EXPORTAR EXCEL (CSV) ---
+        function exportToExcel() {
+            // Fix: BOM para Excel
+            let csvContent = "\uFEFF"; 
+            csvContent += "Fecha,Descripcion,Categoria,Tipo,Monto,Es Viatico\n";
+
+            DB.transactions.forEach(t => {
+                const row = `${t.date},"${t.description}",${t.category},${t.type},${t.amount},${t.isViaticos ? 'SI' : 'NO'}`;
+                csvContent += row + "\n";
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "mis_movimientos.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // --- UTILIDADES ---
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+            document.getElementById(id).classList.remove('flex');
+        }
+        function formatMoney(n) { 
+            // Fix decimales feos
+            return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n); 
+        }
+        function setDefaultDates() {
+            const today = new Date();
+            const first = new Date(today.getFullYear(), today.getMonth(), 1);
+            document.getElementById('filter-date-start').valueAsDate = first;
+            document.getElementById('filter-date-end').valueAsDate = today;
+        }
+
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+            localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+            initTheme();
+        }
+        function initTheme() {
+            const isDark = localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            if(isDark) document.documentElement.classList.add('dark');
+            else document.documentElement.classList.remove('dark');
+        }
+
+        // --- RESPALDO FULL ---
+        function downloadBackup() {
+            // Fix: Respaldo Completo (DB entero)
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(DB));
+            const node = document.createElement('a');
+            node.setAttribute("href", dataStr);
+            const date = new Date().toISOString().slice(0,10);
+            node.setAttribute("download", `backup_finanzas_full_${date}.json`);
+            document.body.appendChild(node);
+            node.click(); node.remove();
+        }
+        
         function restoreData(input) {
             const file = input.files[0];
-            if (!file) return;
-
+            if(!file) return;
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
                     const data = JSON.parse(e.target.result);
                     
-                    if (!Array.isArray(data)) {
-                        alert("El archivo no tiene el formato correcto.");
-                        return;
+                    // Soporte Legacy (Array) vs Nuevo (Objeto Completo)
+                    if(Array.isArray(data)) {
+                        if(confirm('⚠️ ESTE ES UN RESPALDO ANTIGUO. Solo contiene transacciones. ¿Deseas importarlas? (Tus metas/deudas actuales se mantendrán)')) {
+                            DB.transactions = data;
+                            saveDB('transactions');
+                            location.reload();
+                        }
+                    } else if (data.transactions) {
+                         if(confirm('⚠️ RESTAURAR COMPLETO: Esto reemplazará TODAS tus transacciones, metas, deudas y configuraciones actuales con las del archivo. ¿Continuar?')) {
+                            // Cargar todo
+                            DB.transactions = data.transactions || [];
+                            DB.categories = data.categories || defaultCats;
+                            DB.debts = data.debts || [];
+                            DB.goals = data.goals || [];
+                            DB.budgets = data.budgets || {};
+                            saveDB('all');
+                            location.reload();
+                         }
+                    } else {
+                        alert("Formato de archivo no reconocido.");
                     }
 
-                    if (confirm(`Se encontraron ${data.length} registros. ¿Deseas REEMPLAZAR tu información actual con este respaldo? \n(Se borrarán los datos actuales no guardados)`)) {
-                        // Asegurar compatibilidad
-                        transactions = data.map(t => ({...t, type: t.type || 'expense'}));
-                        saveToLocalStorage();
-                        renderApp();
-                        alert("¡Respaldo cargado exitosamente!");
-                    }
-                } catch (error) {
-                    console.error(error);
-                    alert("Error al leer el archivo. Asegúrate de que sea un JSON válido.");
+                } catch(err) { 
+                    console.error(err);
+                    alert('Error al leer el archivo JSON.'); 
                 }
-                // Limpiar input para permitir recargar el mismo archivo
-                input.value = ''; 
+                input.value = ''; // Reset input
             };
             reader.readAsText(file);
         }
 
-        function saveToLocalStorage() {
-            localStorage.setItem('myExpenses', JSON.stringify(transactions));
-        }
-
-        // --- 4. RENDERIZADO Y UI ---
-
-        function renderApp() {
-            const startDate = document.getElementById('filter-date-start').value;
-            const endDate = document.getElementById('filter-date-end').value;
-
-            const filtered = transactions.filter(t => {
-                return t.date >= startDate && t.date <= endDate;
-            }).sort((a, b) => new Date(b.date) - new Date(a.date));
-
-            const totalIncome = filtered.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-            const totalExpense = filtered.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-            const viaticosTotal = filtered.filter(t => t.type === 'expense' && t.isViaticos).reduce((sum, t) => sum + t.amount, 0);
-            const balance = totalIncome - totalExpense;
-
-            document.getElementById('income-amount').innerText = formatCurrency(totalIncome);
-            document.getElementById('expense-amount').innerText = formatCurrency(totalExpense);
-            document.getElementById('viaticos-amount').innerText = formatCurrency(viaticosTotal);
-            document.getElementById('balance-amount').innerText = formatCurrency(balance);
-            
-            const balanceEl = document.getElementById('balance-amount');
-            if (balance < 0) balanceEl.classList.add('text-red-200');
-            else balanceEl.classList.remove('text-red-200');
-
-            document.getElementById('list-count').innerText = `${filtered.length} items`;
-
-            renderTransactionList(filtered);
-            renderTop5(filtered.filter(t => t.type === 'expense'));
-            updateChart(filtered.filter(t => t.type === 'expense'));
-
-            lucide.createIcons();
-        }
-
-        function renderTransactionList(list) {
-            const container = document.getElementById('transactions-list');
-            container.innerHTML = '';
-
-            if (list.length === 0) {
-                container.innerHTML = `
-                    <div class="flex flex-col items-center justify-center h-full text-gray-400 py-10">
-                        <i data-lucide="inbox" class="w-12 h-12 mb-2 opacity-50"></i>
-                        <p class="text-sm">No hay movimientos en este periodo.</p>
-                    </div>`;
-                return;
-            }
-
-            list.forEach(t => {
-                const isExpense = t.type === 'expense';
-                const colorClass = isExpense ? 'text-gray-800 dark:text-gray-200' : 'text-emerald-600 dark:text-emerald-400 font-bold';
-                const sign = isExpense ? '- ' : '+ ';
-                
-                const isViaticoBadge = (isExpense && t.isViaticos)
-                    ? `<span class="text-[10px] bg-orange-100 dark:bg-orange-900 text-orange-600 dark:text-orange-300 px-1.5 py-0.5 rounded ml-2 border border-orange-200 dark:border-orange-800">Viático</span>` 
-                    : '';
-
-                let catColor = '#999';
-                if(isExpense) catColor = expenseCategories[t.category] || '#999';
-                else catColor = incomeCategories[t.category] || '#10B981';
-                
-                const item = document.createElement('div');
-                item.className = 'flex items-center justify-between p-3 mb-2 bg-white dark:bg-gray-800 border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 transition rounded-lg group';
-                item.innerHTML = `
-                    <div class="flex items-center gap-3 overflow-hidden">
-                        <div class="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0 font-bold text-xs shadow-sm" 
-                             style="background-color: ${catColor}">
-                            ${t.category.substring(0, 2).toUpperCase()}
-                        </div>
-                        <div class="min-w-0">
-                            <p class="font-medium text-gray-800 dark:text-gray-200 truncate text-sm">
-                                ${t.description} ${isViaticoBadge}
-                            </p>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">
-                                ${formatDate(t.date)} • ${t.category}
-                            </p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-4 pl-2 shrink-0">
-                        <span class="${colorClass} text-sm whitespace-nowrap">${sign}${formatCurrency(t.amount)}</span>
-                        <div class="flex gap-1 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onclick="editTransaction('${t.id}')" class="p-1.5 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors"><i data-lucide="pencil" class="w-4 h-4"></i></button>
-                            <button onclick="deleteTransaction('${t.id}')" class="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                        </div>
-                    </div>
-                `;
-                container.appendChild(item);
-            });
-        }
-
-        function renderTop5(list) {
-            const container = document.getElementById('top-5-list');
-            const sorted = [...list].sort((a, b) => b.amount - a.amount).slice(0, 5);
-            
-            container.innerHTML = '';
-            
-            if(sorted.length === 0) {
-                 container.innerHTML = '<li class="text-center text-gray-400 text-xs py-4">Registra gastos para ver el Top 5</li>';
-                 return;
-            }
-
-            sorted.forEach((exp, index) => {
-                const li = document.createElement('li');
-                li.className = 'flex items-center justify-between text-sm border-b border-gray-50 dark:border-gray-700 pb-2 last:border-0';
-                li.innerHTML = `
-                    <div class="flex items-center gap-2 truncate flex-1">
-                        <span class="text-xs font-bold text-gray-400 w-5">#${index + 1}</span>
-                        <span class="text-gray-700 dark:text-gray-300 truncate">${exp.description}</span>
-                    </div>
-                    <span class="font-bold text-gray-800 dark:text-gray-200 text-xs whitespace-nowrap">${formatCurrency(exp.amount)}</span>
-                `;
-                container.appendChild(li);
-            });
-        }
-
-        function updateChart(list) {
-            const ctx = document.getElementById('expensesChart').getContext('2d');
-            const emptyState = document.getElementById('chart-empty-state');
-            const canvas = document.getElementById('expensesChart');
-            
-            if (chartInstance) {
-                chartInstance.destroy();
-                chartInstance = null;
-            }
-
-            if (list.length === 0) {
-                emptyState.classList.remove('hidden');
-                emptyState.classList.add('flex');
-                canvas.classList.add('opacity-0');
-                return;
-            } else {
-                emptyState.classList.add('hidden');
-                emptyState.classList.remove('flex');
-                canvas.classList.remove('opacity-0');
-            }
-
-            const totalsByCategory = {};
-            list.forEach(exp => {
-                totalsByCategory[exp.category] = (totalsByCategory[exp.category] || 0) + exp.amount;
-            });
-
-            const labels = Object.keys(totalsByCategory);
-            const data = Object.values(totalsByCategory);
-            const bgColors = labels.map(cat => expenseCategories[cat] || '#999');
-
-            chartInstance = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: data,
-                        backgroundColor: bgColors,
-                        borderWidth: 0,
-                        hoverOffset: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 }, color: document.documentElement.classList.contains('dark') ? '#ccc' : '#666' } }
-                    },
-                    layout: { padding: 10 }
-                }
-            });
-        }
-
-        // --- 5. LÓGICA DEL FORMULARIO Y MODAL ---
-
-        function setTransactionType(type) {
-            const typeInput = document.getElementById('transaction-type');
-            const btnExpense = document.getElementById('type-expense');
-            const btnIncome = document.getElementById('type-income');
-            const viaticosContainer = document.getElementById('viaticos-container');
-            const viaticosCheckbox = document.getElementById('is-viaticos');
-
-            typeInput.value = type;
-            const activeClasses = ['bg-white', 'shadow-sm', 'font-bold', 'ring-1', 'ring-black/5'];
-            const inactiveClasses = ['text-gray-500', 'dark:text-gray-400', 'hover:bg-white/50'];
-
-            if (type === 'expense') {
-                btnExpense.classList.add(...activeClasses, 'text-red-600', 'dark:bg-gray-600', 'dark:text-red-400');
-                btnExpense.classList.remove(...inactiveClasses);
-                btnIncome.classList.remove(...activeClasses, 'text-emerald-600', 'dark:bg-gray-600', 'dark:text-emerald-400');
-                btnIncome.classList.add(...inactiveClasses);
-                viaticosContainer.classList.remove('hidden');
-                viaticosContainer.classList.add('flex');
-                populateCategories('expense');
-            } else {
-                btnIncome.classList.add(...activeClasses, 'text-emerald-600', 'dark:bg-gray-600', 'dark:text-emerald-400');
-                btnIncome.classList.remove(...inactiveClasses);
-                btnExpense.classList.remove(...activeClasses, 'text-red-600', 'dark:bg-gray-600', 'dark:text-red-400');
-                btnExpense.classList.add(...inactiveClasses);
-                viaticosContainer.classList.add('hidden');
-                viaticosContainer.classList.remove('flex');
-                viaticosCheckbox.checked = false;
-                populateCategories('income');
+        function wipeData() {
+            if(confirm('⚠️ ¿BORRAR TODO? Esta acción es irreversible.')) {
+                localStorage.clear();
+                location.reload();
             }
         }
-
-        function populateCategories(type) {
-            const select = document.getElementById('category');
-            const currentVal = select.value;
-            select.innerHTML = '';
-            
-            const categories = type === 'expense' ? Object.keys(expenseCategories) : Object.keys(incomeCategories);
-            categories.forEach(cat => {
-                const option = document.createElement('option');
-                option.value = cat;
-                option.text = cat;
-                select.appendChild(option);
-            });
-
-            if (categories.includes(currentVal)) select.value = currentVal;
-        }
-
-        function formatCurrency(num) {
-            return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(num);
-        }
-
-        function formatDate(dateStr) {
-            if(!dateStr) return '';
-            const [year, month, day] = dateStr.split('-');
-            return `${day}/${month}/${year}`;
-        }
-
-        function applyFilters() { renderApp(); }
-
-        function openModal(reset = true) {
-            if(reset) {
-                document.getElementById('expense-form').reset();
-                document.getElementById('transaction-id').value = '';
-                document.getElementById('date').valueAsDate = new Date();
-                document.getElementById('modal-title').innerText = "Nuevo Movimiento";
-                setTransactionType('expense'); 
-            }
-            const modal = document.getElementById('expense-modal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            
-            const modalContent = modal.querySelector('div');
-            modalContent.classList.remove('modal-exit', 'modal-exit-active');
-            modalContent.classList.add('modal-enter');
-            setTimeout(() => modalContent.classList.add('modal-enter-active'), 10);
-        }
-
-        function closeModal() {
-            const modal = document.getElementById('expense-modal');
-            const modalContent = modal.querySelector('div');
-            modalContent.classList.remove('modal-enter', 'modal-enter-active');
-            modalContent.classList.add('modal-exit');
-            modalContent.classList.add('modal-exit-active');
-            setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); }, 200);
-        }
-
-        function initTheme() {
-            if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                document.documentElement.classList.add('dark');
-                updateThemeIcon(true);
-            } else {
-                document.documentElement.classList.remove('dark');
-                updateThemeIcon(false);
-            }
-        }
-
-        function toggleTheme() {
-            if (document.documentElement.classList.contains('dark')) {
-                document.documentElement.classList.remove('dark');
-                localStorage.theme = 'light';
-                updateThemeIcon(false);
-            } else {
-                document.documentElement.classList.add('dark');
-                localStorage.theme = 'dark';
-                updateThemeIcon(true);
-            }
-            renderApp();
-        }
-
-        function updateThemeIcon(isDark) {
-            const icon = document.getElementById('theme-icon');
-            if(isDark) icon.setAttribute('data-lucide', 'moon');
-            else icon.setAttribute('data-lucide', 'sun');
-            lucide.createIcons();
-        }
-
-        function downloadData() {
-            if(transactions.length === 0) {
-                alert("No hay datos para descargar");
-                return;
-            }
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(transactions, null, 2));
-            const node = document.createElement('a');
-            node.setAttribute("href", dataStr);
-            const date = new Date().toISOString().slice(0,10);
-            node.setAttribute("download", `mis_finanzas_${date}.json`);
-            document.body.appendChild(node);
-            node.click();
-            node.remove();
-        }
-
-        document.addEventListener('keydown', function(event){ if(event.key === "Escape") closeModal(); });
     </script>
 </body>
 </html>
-
