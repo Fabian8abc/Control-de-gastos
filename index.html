@@ -8,6 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="icon.png">
 <head>
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Mi Control de Gastos y Balance</title>
@@ -371,6 +372,24 @@
             }
 
             saveToLocalStorage();
+            
+            // --- CORRECCIÓN: Ajustar Filtros Automáticamente ---
+            // Si la fecha del nuevo registro está fuera del rango actual, expandimos el filtro
+            // para que el usuario pueda ver su registro inmediatamente.
+            const startDateInput = document.getElementById('filter-date-start');
+            const endDateInput = document.getElementById('filter-date-end');
+            
+            if (date < startDateInput.value) {
+                startDateInput.value = date;
+                // Opcional: Avisar usuario
+                // console.log("Filtro ajustado al pasado");
+            }
+            if (date > endDateInput.value) {
+                endDateInput.value = date;
+                // console.log("Filtro ajustado al futuro");
+            }
+            // ----------------------------------------------------
+
             closeModal();
             renderApp();
         }
@@ -750,3 +769,4 @@
     </script>
 </body>
 </html>
+
