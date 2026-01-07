@@ -54,9 +54,13 @@
             <h1 class="text-lg font-bold text-brand-600 dark:text-brand-500 flex items-center gap-2">
                 <i data-lucide="layout-dashboard" class="w-5 h-5"></i> <span id="header-title">Resumen</span>
             </h1>
-            <div class="flex gap-2">
-                <button onclick="toggleTheme()" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-yellow-500 transition">
-                    <i data-lucide="sun" id="theme-icon" class="w-5 h-5"></i>
+            <div class="flex gap-3">
+                <!-- Botón Ayuda -->
+                <button onclick="openHelpModal()" class="p-1 rounded-full text-brand-500 hover:bg-brand-50 dark:hover:bg-gray-700 transition" title="Ayuda">
+                    <i data-lucide="circle-help" class="w-6 h-6"></i>
+                </button>
+                <button onclick="toggleTheme()" class="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-yellow-500 transition">
+                    <i data-lucide="sun" id="theme-icon" class="w-6 h-6"></i>
                 </button>
             </div>
         </div>
@@ -67,10 +71,24 @@
         
         <!-- VISTA 1: DASHBOARD (RESUMEN) -->
         <div id="view-dashboard" class="space-y-6 fade-in">
+            
+            <!-- Controles de Periodo del Dashboard -->
+            <div class="bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row gap-3 items-center justify-between">
+                <div class="flex gap-2 w-full sm:w-auto overflow-x-auto no-scrollbar">
+                    <button onclick="setDashPreset('current')" class="px-3 py-1.5 text-xs font-medium bg-brand-100 text-brand-700 rounded-lg whitespace-nowrap hover:bg-brand-200 dark:bg-brand-900/30 dark:text-brand-300 transition">Mes Actual</button>
+                    <button onclick="setDashPreset('previous')" class="px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-600 rounded-lg whitespace-nowrap hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 transition">Mes Pasado</button>
+                </div>
+                <div class="flex gap-2 w-full sm:w-auto items-center bg-gray-50 dark:bg-gray-900 p-1 rounded-lg">
+                    <input type="date" id="dash-date-start" onchange="renderDashboard()" class="bg-transparent border-none text-xs w-full outline-none dark:text-white text-center">
+                    <span class="text-gray-400 text-xs">al</span>
+                    <input type="date" id="dash-date-end" onchange="renderDashboard()" class="bg-transparent border-none text-xs w-full outline-none dark:text-white text-center">
+                </div>
+            </div>
+
             <!-- Balance Cards -->
             <section class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="bg-gradient-to-br from-brand-500 to-brand-700 rounded-2xl p-5 text-white shadow-lg">
-                    <p class="text-brand-100 text-xs font-medium uppercase tracking-wider">Disponible (Mes Actual)</p>
+                    <p class="text-brand-100 text-xs font-medium uppercase tracking-wider">Disponible (Periodo Seleccionado)</p>
                     <h2 class="text-3xl font-bold mt-1" id="balance-amount">$0.00</h2>
                     <div class="flex justify-between mt-4 text-xs opacity-90">
                         <span><i data-lucide="arrow-up" class="inline w-3 h-3"></i> Ing: <span id="dash-income">$0</span></span>
@@ -80,7 +98,7 @@
                 <!-- Gráfica Rápida -->
                 <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow border border-gray-100 dark:border-gray-700 h-40 flex items-center justify-center relative">
                      <canvas id="miniChart"></canvas>
-                     <div id="miniChart-empty" class="absolute text-xs text-gray-400 hidden">Sin datos este mes</div>
+                     <div id="miniChart-empty" class="absolute text-xs text-gray-400 hidden">Sin datos en este periodo</div>
                 </div>
             </section>
 
@@ -99,13 +117,32 @@
 
         <!-- VISTA 2: MOVIMIENTOS (HISTORIAL) -->
         <div id="view-transactions" class="hidden space-y-4 fade-in">
-            <!-- Filtros -->
-            <div class="flex gap-2 bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm overflow-x-auto no-scrollbar">
-                <input type="date" id="filter-date-start" onchange="renderTransactions()" class="bg-gray-50 dark:bg-gray-700 border-none text-xs rounded p-2 outline-none">
-                <input type="date" id="filter-date-end" onchange="renderTransactions()" class="bg-gray-50 dark:bg-gray-700 border-none text-xs rounded p-2 outline-none">
-                <button onclick="exportToExcel()" class="bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-3 py-1 rounded text-xs whitespace-nowrap flex items-center gap-1">
-                    <i data-lucide="sheet" class="w-3 h-3"></i> Excel
-                </button>
+            <!-- Filtros Avanzados -->
+            <div class="flex flex-col gap-2 bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
+                <div class="flex gap-2 w-full">
+                    <div class="flex-1">
+                        <label class="text-[10px] text-gray-400 block mb-1">Desde</label>
+                        <input type="date" id="filter-date-start" onchange="renderTransactions()" class="w-full bg-gray-50 dark:bg-gray-700 border-none text-xs rounded p-2 outline-none dark:text-white">
+                    </div>
+                    <div class="flex-1">
+                        <label class="text-[10px] text-gray-400 block mb-1">Hasta</label>
+                        <input type="date" id="filter-date-end" onchange="renderTransactions()" class="w-full bg-gray-50 dark:bg-gray-700 border-none text-xs rounded p-2 outline-none dark:text-white">
+                    </div>
+                </div>
+                <div class="flex gap-2 w-full items-center">
+                    <div class="flex-1">
+                        <label class="text-[10px] text-gray-400 block mb-1">Categoría</label>
+                        <select id="filter-category" onchange="renderTransactions()" class="w-full bg-gray-50 dark:bg-gray-700 border-none text-xs rounded p-2 outline-none dark:text-white">
+                            <option value="all">Todas</option>
+                            <!-- JS llena esto -->
+                        </select>
+                    </div>
+                    <div class="mt-4">
+                        <button onclick="exportToExcel()" class="bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-3 py-2 rounded text-xs whitespace-nowrap flex items-center gap-1 hover:bg-green-200 dark:hover:bg-green-800 transition">
+                            <i data-lucide="sheet" class="w-3 h-3"></i> CSV
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <!-- Lista -->
@@ -141,29 +178,35 @@
 
         <!-- VISTA 4: CONFIGURACIÓN -->
         <div id="view-config" class="hidden space-y-4 fade-in">
-            <!-- Categorías -->
+            
+            <!-- Crear Categorías -->
             <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
-                <h3 class="font-bold mb-3 text-sm">Categorías Personalizadas (Gastos)</h3>
+                <h3 class="font-bold mb-3 text-sm flex items-center gap-2"><i data-lucide="tag" class="w-4 h-4 text-brand-500"></i> Crear Categorías</h3>
                 <div class="flex gap-2 mb-3">
-                    <input type="text" id="new-cat-name" placeholder="Nueva categoría..." class="flex-1 bg-gray-50 dark:bg-gray-700 p-2 rounded text-sm outline-none border border-gray-200 dark:border-gray-600">
+                    <input type="text" id="new-cat-name" placeholder="Ej. Mascotas" class="flex-1 bg-gray-50 dark:bg-gray-700 p-2 rounded text-sm outline-none border border-gray-200 dark:border-gray-600 dark:text-white">
                     <input type="color" id="new-cat-color" value="#3b82f6" class="h-9 w-9 rounded cursor-pointer border-none bg-transparent">
-                    <button onclick="addCategory()" class="bg-brand-600 text-white p-2 rounded"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                    <button onclick="addCategory()" class="bg-brand-600 text-white p-2 rounded hover:bg-brand-700"><i data-lucide="plus" class="w-4 h-4"></i></button>
                 </div>
                 <div id="config-categories-list" class="flex flex-wrap gap-2">
                     <!-- Chips de categorías -->
                 </div>
             </div>
 
+            <!-- Configurar Presupuestos -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
+                <h3 class="font-bold mb-3 text-sm flex items-center gap-2"><i data-lucide="calculator" class="w-4 h-4 text-brand-500"></i> Definir Presupuestos (Límites)</h3>
+                <p class="text-xs text-gray-500 mb-3">Establece cuánto quieres gastar máximo al mes por categoría.</p>
+                <div id="budget-config-list" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                    <!-- Lista de inputs de presupuesto -->
+                </div>
+            </div>
+
             <!-- Gestión de Datos -->
             <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
-                <h3 class="font-bold mb-3 text-sm">Datos y Respaldo</h3>
-                <div class="p-3 mb-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-xs rounded-lg">
-                    <i data-lucide="info" class="inline w-3 h-3 mr-1"></i>
-                    El respaldo ahora guarda Metas, Deudas y Categorías.
-                </div>
+                <h3 class="font-bold mb-3 text-sm flex items-center gap-2"><i data-lucide="database" class="w-4 h-4 text-brand-500"></i> Datos y Respaldo</h3>
                 <div class="space-y-2">
                     <button onclick="downloadBackup()" class="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg text-sm transition hover:bg-gray-100">
-                        <span><i data-lucide="download" class="inline w-4 h-4 mr-2"></i> Descargar Respaldo Completo</span>
+                        <span><i data-lucide="download" class="inline w-4 h-4 mr-2"></i> Descargar Respaldo</span>
                     </button>
                     <button onclick="document.getElementById('restore-input').click()" class="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg text-sm transition hover:bg-gray-100">
                         <span><i data-lucide="upload" class="inline w-4 h-4 mr-2"></i> Restaurar Respaldo</span>
@@ -209,6 +252,35 @@
 
     <!-- MODALES -->
     
+    <!-- Modal Ayuda -->
+    <div id="modal-help" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md p-6 shadow-2xl max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-lg dark:text-white">Guía Rápida</h3>
+                <button onclick="closeModal('modal-help')" class="text-gray-400"><i data-lucide="x"></i></button>
+            </div>
+            <div class="space-y-4 text-sm text-gray-600 dark:text-gray-300">
+                <div>
+                    <h4 class="font-bold text-brand-600 dark:text-brand-400 mb-1 flex items-center gap-2"><i data-lucide="home" class="w-4 h-4"></i> Inicio (Dashboard)</h4>
+                    <p>Aquí ves el resumen. Usa los controles de fecha arriba para elegir si quieres ver el <strong>Mes Actual</strong>, el <strong>Mes Pasado</strong> o un rango personalizado (ej. tu quincena).</p>
+                </div>
+                <div>
+                    <h4 class="font-bold text-brand-600 dark:text-brand-400 mb-1 flex items-center gap-2"><i data-lucide="list" class="w-4 h-4"></i> Historial</h4>
+                    <p>Aquí está TODO. Por defecto muestra desde el 1 de enero. Usa los filtros de fecha para ver años anteriores o filtra por categoría específica.</p>
+                </div>
+                <div>
+                    <h4 class="font-bold text-brand-600 dark:text-brand-400 mb-1 flex items-center gap-2"><i data-lucide="plus-circle" class="w-4 h-4"></i> Botón Central (+)</h4>
+                    <p>Úsalo para registrar un gasto o ingreso. Si la fecha es pasada, se guardará en el historial pero tal vez no se refleje en el saldo del "Inicio" (porque Inicio es solo mes actual).</p>
+                </div>
+                <div>
+                    <h4 class="font-bold text-brand-600 dark:text-brand-400 mb-1 flex items-center gap-2"><i data-lucide="settings" class="w-4 h-4"></i> Configuración</h4>
+                    <p>Crea categorías nuevas y define límites de gasto (presupuestos) para que las barras de colores te avisen si estás gastando de más.</p>
+                </div>
+            </div>
+            <button onclick="closeModal('modal-help')" class="w-full mt-6 bg-brand-600 text-white py-2 rounded-lg">¡Entendido!</button>
+        </div>
+    </div>
+
     <!-- Modal Transacción -->
     <div id="modal-transaction" class="fixed inset-0 bg-black/60 hidden items-end sm:items-center justify-center z-50 p-0 sm:p-4 backdrop-blur-sm transition-opacity">
         <div class="bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -239,11 +311,6 @@
                 <div id="viaticos-check" class="flex items-center gap-2 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg text-sm">
                     <input type="checkbox" id="tx-viatico" class="w-4 h-4">
                     <label for="tx-viatico" class="text-orange-700 dark:text-orange-300">Es viático / viaje</label>
-                </div>
-
-                <div id="budget-set-container" class="hidden">
-                    <label class="text-xs text-gray-500 block mb-1">Presupuesto Mensual para esta categoría:</label>
-                    <input type="number" id="cat-budget-input" placeholder="Opcional: Límite mensual" class="w-full bg-gray-50 dark:bg-gray-700 p-2 rounded text-xs dark:text-white">
                 </div>
 
                 <button type="submit" class="w-full bg-brand-600 text-white py-3 rounded-lg font-bold shadow-lg hover:bg-brand-700">Guardar</button>
@@ -298,7 +365,6 @@
             'Otros': '#CBD5E1'
         };
 
-        // CORRECCIÓN: Categorías Exclusivas de Ingreso
         const incomeCats = {
             'Nómina': '#10B981', 'Ventas': '#34D399', 'Reembolso': '#6EE7B7',
             'Regalo': '#A7F3D0', 'Inversión': '#059669', 'Otros Ingresos': '#D1FAE5'
@@ -314,12 +380,9 @@
         });
 
         function initData() {
-            // Migración de datos viejos (si existen)
             if(Array.isArray(DB.transactions)) {
                 DB.transactions = DB.transactions.map(t => ({...t, type: t.type || 'expense'}));
             }
-            
-            // Cargar categorías default si está vacío
             if (Object.keys(DB.categories).length === 0) {
                 DB.categories = {...defaultCats};
                 saveDB('categories');
@@ -364,7 +427,11 @@
             const titles = { 'dashboard': 'Resumen', 'transactions': 'Historial', 'goals': 'Metas y Deudas', 'config': 'Configuración' };
             document.getElementById('header-title').innerText = titles[tabId];
 
-            if(tabId === 'dashboard') renderDashboard();
+            if(tabId === 'dashboard') {
+                // Si llegamos a dashboard y no hay fechas seteadas, pon el mes actual
+                if(!document.getElementById('dash-date-start').value) setDashPreset('current');
+                else renderDashboard();
+            }
             if(tabId === 'transactions') renderTransactions();
             if(tabId === 'goals') renderGoalsView();
             if(tabId === 'config') renderConfig();
@@ -372,26 +439,53 @@
 
         // --- DASHBOARD ---
         let miniChart = null;
-        function renderDashboard() {
-            const today = new Date();
-            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-            const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
-            const currentMonthTx = DB.transactions.filter(t => {
-                const d = new Date(t.date);
-                return d >= firstDay && d <= lastDay;
+        function setDashPreset(preset) {
+            const today = new Date();
+            let start, end;
+
+            if (preset === 'current') {
+                start = new Date(today.getFullYear(), today.getMonth(), 1);
+                end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            } else if (preset === 'previous') {
+                start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                end = new Date(today.getFullYear(), today.getMonth(), 0);
+            }
+
+            // Convert to YYYY-MM-DD for input value, handling local timezone
+            const fmt = d => {
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
+
+            document.getElementById('dash-date-start').value = fmt(start);
+            document.getElementById('dash-date-end').value = fmt(end);
+            renderDashboard();
+        }
+
+        function renderDashboard() {
+            // Leer fechas de los inputs del dashboard
+            const startDateStr = document.getElementById('dash-date-start').value;
+            const endDateStr = document.getElementById('dash-date-end').value;
+
+            if(!startDateStr || !endDateStr) return; // Esperar input
+
+            const currentPeriodTx = DB.transactions.filter(t => {
+                return t.date >= startDateStr && t.date <= endDateStr;
             });
 
-            const income = currentMonthTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-            const expense = currentMonthTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+            const income = currentPeriodTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+            const expense = currentPeriodTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
             const balance = income - expense;
 
             document.getElementById('balance-amount').innerText = formatMoney(balance);
             document.getElementById('dash-income').innerText = formatMoney(income);
             document.getElementById('dash-expense').innerText = formatMoney(expense);
 
-            updateMiniChart(currentMonthTx);
-            renderBudgets(currentMonthTx);
+            updateMiniChart(currentPeriodTx);
+            renderBudgets(currentPeriodTx);
         }
 
         function updateMiniChart(txs) {
@@ -425,7 +519,7 @@
             });
         }
 
-        function renderBudgets(monthTxs) {
+        function renderBudgets(periodTxs) {
             const container = document.getElementById('budgets-container');
             container.innerHTML = '';
             
@@ -436,7 +530,7 @@
             }
 
             const spentMap = {};
-            monthTxs.filter(t => t.type === 'expense').forEach(t => spentMap[t.category] = (spentMap[t.category] || 0) + t.amount);
+            periodTxs.filter(t => t.type === 'expense').forEach(t => spentMap[t.category] = (spentMap[t.category] || 0) + t.amount);
 
             catsWithBudget.forEach(cat => {
                 const limit = DB.budgets[cat];
@@ -466,11 +560,16 @@
         function renderTransactions() {
             const start = document.getElementById('filter-date-start').value;
             const end = document.getElementById('filter-date-end').value;
+            const categoryFilter = document.getElementById('filter-category').value; 
+            
             const list = document.getElementById('transactions-list');
             list.innerHTML = '';
 
-            const filtered = DB.transactions.filter(t => t.date >= start && t.date <= end)
-                                           .sort((a, b) => new Date(b.date) - new Date(a.date));
+            const filtered = DB.transactions.filter(t => {
+                const dateMatch = t.date >= start && t.date <= end;
+                const catMatch = categoryFilter === 'all' || t.category === categoryFilter;
+                return dateMatch && catMatch;
+            }).sort((a, b) => new Date(b.date) - new Date(a.date));
 
             if(filtered.length === 0) {
                 list.innerHTML = `<div class="text-center text-gray-400 py-10">Sin movimientos</div>`;
@@ -481,7 +580,6 @@
                 const isExp = t.type === 'expense';
                 const color = isExp ? 'text-gray-800 dark:text-gray-100' : 'text-emerald-600 font-bold';
                 const sign = isExp ? '-' : '+';
-                // CORRECCIÓN: Buscar color en ambas listas
                 const catColor = DB.categories[t.category] || incomeCats[t.category] || '#999';
 
                 const div = document.createElement('div');
@@ -502,6 +600,18 @@
                     </div>
                 `;
                 list.appendChild(div);
+            });
+        }
+        
+        function populateFilterCategory() {
+            const select = document.getElementById('filter-category');
+            select.innerHTML = '<option value="all">Todas</option>';
+            const allCats = {...DB.categories, ...incomeCats};
+            Object.keys(allCats).sort().forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.innerText = cat;
+                select.appendChild(opt);
             });
         }
 
@@ -558,7 +668,7 @@
             });
         }
 
-        // --- CONFIGURACIÓN Y CATEGORÍAS ---
+        // --- CONFIGURACIÓN ---
         function renderConfig() {
             const list = document.getElementById('config-categories-list');
             list.innerHTML = '';
@@ -574,6 +684,37 @@
                 `;
                 list.appendChild(tag);
             });
+
+            const budgetList = document.getElementById('budget-config-list');
+            budgetList.innerHTML = '';
+            
+            Object.keys(DB.categories).forEach(cat => {
+                const currentBudget = DB.budgets[cat] || '';
+                const row = document.createElement('div');
+                row.className = "flex items-center justify-between bg-gray-50 dark:bg-gray-700 p-2 rounded-lg";
+                row.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <div class="w-2 h-8 rounded bg-gray-300" style="background-color:${DB.categories[cat]}"></div>
+                        <span class="text-sm dark:text-white">${cat}</span>
+                    </div>
+                    <input type="number" 
+                           placeholder="Límite $" 
+                           value="${currentBudget}" 
+                           onchange="updateBudget('${cat}', this.value)"
+                           class="w-24 p-1 text-right text-sm border border-gray-200 rounded outline-none dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                `;
+                budgetList.appendChild(row);
+            });
+        }
+
+        function updateBudget(cat, value) {
+            const val = parseFloat(value);
+            if(isNaN(val) || val <= 0) {
+                delete DB.budgets[cat];
+            } else {
+                DB.budgets[cat] = val;
+            }
+            saveDB('budgets');
         }
 
         function addCategory() {
@@ -583,6 +724,7 @@
                 DB.categories[name] = color;
                 saveDB('categories');
                 renderConfig();
+                populateFilterCategory();
                 document.getElementById('new-cat-name').value = '';
             } else {
                 alert('Nombre inválido o ya existe');
@@ -594,46 +736,30 @@
                 delete DB.categories[name];
                 saveDB('categories');
                 renderConfig();
+                populateFilterCategory();
             }
         }
 
         // --- GESTIÓN DE MODALES Y FORMULARIOS ---
+        
+        function openHelpModal() {
+            document.getElementById('modal-help').classList.remove('hidden');
+            document.getElementById('modal-help').classList.add('flex');
+        }
 
         function openTransactionModal() {
             document.getElementById('modal-transaction').classList.remove('hidden');
             document.getElementById('modal-transaction').classList.add('flex');
             document.getElementById('tx-date').valueAsDate = new Date();
-            
-            // Iniciar por defecto como Gasto y rellenar categorías
             document.getElementById('tx-amount').value = '';
             document.getElementById('tx-desc').value = '';
-            setTxType('expense'); // Esto dispara la carga de categorías
-            checkBudgetSetting();
+            setTxType('expense'); 
         }
 
-        function checkBudgetSetting() {
-            const type = document.getElementById('tx-type').value;
-            const cat = document.getElementById('tx-category').value;
-            const container = document.getElementById('budget-set-container');
-            const input = document.getElementById('cat-budget-input');
-
-            if(type === 'expense') {
-                container.classList.remove('hidden');
-                input.value = DB.budgets[cat] || '';
-            } else {
-                container.classList.add('hidden');
-            }
-        }
-        document.getElementById('tx-category').addEventListener('change', checkBudgetSetting);
-
-        // NUEVA FUNCIÓN: Rellenar select dinámicamente
         function populateCategorySelect(type) {
             const select = document.getElementById('tx-category');
             select.innerHTML = '';
-            
-            // Si es gasto usa DB.categories (customizables), si es ingreso usa incomeCats (fijas)
             const source = (type === 'expense') ? DB.categories : incomeCats;
-            
             Object.keys(source).forEach(c => {
                 const opt = document.createElement('option');
                 opt.value = c;
@@ -657,10 +783,7 @@
                 btnExp.className = "flex-1 py-2 text-sm text-gray-500 hover:bg-gray-200 transition-all";
                 viatico.classList.add('hidden');
             }
-            
-            // Llamar al rellenado
             populateCategorySelect(type);
-            checkBudgetSetting();
         }
 
         function saveTransaction(e) {
@@ -672,14 +795,6 @@
             const type = document.getElementById('tx-type').value;
             const isViatico = document.getElementById('tx-viatico').checked;
             
-            if(type === 'expense') {
-                const budgetVal = parseFloat(document.getElementById('cat-budget-input').value);
-                if(!isNaN(budgetVal) && budgetVal > 0) {
-                    DB.budgets[category] = budgetVal;
-                    saveDB('budgets');
-                }
-            }
-
             const newTx = {
                 id: Date.now().toString(),
                 amount: Math.abs(amount),
@@ -693,14 +808,15 @@
             DB.transactions.push(newTx);
             saveDB('transactions');
             
-            // Auto ajustar filtros (UX Fix)
-            const start = document.getElementById('filter-date-start');
-            const end = document.getElementById('filter-date-end');
-            if(date < start.value) start.value = date;
-            if(date > end.value) end.value = date;
+            // Si la fecha agregada está fuera del filtro actual del historial, expandir filtro
+            const startInput = document.getElementById('filter-date-start');
+            const endInput = document.getElementById('filter-date-end');
+            if(date < startInput.value) startInput.value = date;
+            if(date > endInput.value) endInput.value = date;
 
             closeModal('modal-transaction');
             
+            // Refrescar vista actual
             const currentTab = document.querySelector('.nav-active').id.replace('nav-', '');
             if(currentTab === 'dashboard') renderDashboard();
             if(currentTab === 'transactions') renderTransactions();
@@ -733,13 +849,10 @@
             if(amount) {
                 const debt = DB.debts[idx];
                 const remaining = debt.total - (debt.paid || 0);
-                
-                // Logic check: No abonar más de la deuda
                 if(amount > remaining) {
                     alert(`¡Error! Solo debes ${formatMoney(remaining)}.`);
                     return;
                 }
-
                 DB.debts[idx].paid = (DB.debts[idx].paid || 0) + amount;
                 
                 if(confirm("¿Registrar esto como Gasto en el historial?")) {
@@ -785,7 +898,6 @@
             const amount = parseFloat(prompt("¿Cuánto vas a ahorrar hoy?"));
             if(amount) {
                 DB.goals[idx].saved += amount;
-                
                 if(confirm("¿Registrar como movimiento de 'Ahorro' (Gasto)?")) {
                     DB.transactions.push({
                          id: Date.now().toString(),
@@ -812,15 +924,12 @@
 
         // --- EXPORTAR EXCEL (CSV) ---
         function exportToExcel() {
-            // Fix: BOM para Excel
             let csvContent = "\uFEFF"; 
             csvContent += "Fecha,Descripcion,Categoria,Tipo,Monto,Es Viatico\n";
-
             DB.transactions.forEach(t => {
                 const row = `${t.date},"${t.description}",${t.category},${t.type},${t.amount},${t.isViaticos ? 'SI' : 'NO'}`;
                 csvContent += row + "\n";
             });
-
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             const url = URL.createObjectURL(blob);
@@ -837,13 +946,12 @@
             document.getElementById(id).classList.remove('flex');
         }
         function formatMoney(n) { 
-            // Fix decimales feos
             return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n); 
         }
         function setDefaultDates() {
             const today = new Date();
-            const first = new Date(today.getFullYear(), today.getMonth(), 1);
-            document.getElementById('filter-date-start').valueAsDate = first;
+            const firstOfYear = new Date(today.getFullYear(), 0, 1);
+            document.getElementById('filter-date-start').valueAsDate = firstOfYear;
             document.getElementById('filter-date-end').valueAsDate = today;
         }
 
@@ -860,7 +968,6 @@
 
         // --- RESPALDO FULL ---
         function downloadBackup() {
-            // Fix: Respaldo Completo (DB entero)
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(DB));
             const node = document.createElement('a');
             node.setAttribute("href", dataStr);
@@ -877,17 +984,14 @@
             reader.onload = function(e) {
                 try {
                     const data = JSON.parse(e.target.result);
-                    
-                    // Soporte Legacy (Array) vs Nuevo (Objeto Completo)
                     if(Array.isArray(data)) {
-                        if(confirm('⚠️ ESTE ES UN RESPALDO ANTIGUO. Solo contiene transacciones. ¿Deseas importarlas? (Tus metas/deudas actuales se mantendrán)')) {
+                        if(confirm('⚠️ ESTE ES UN RESPALDO ANTIGUO. Solo contiene transacciones. ¿Deseas importarlas?')) {
                             DB.transactions = data;
                             saveDB('transactions');
                             location.reload();
                         }
                     } else if (data.transactions) {
-                         if(confirm('⚠️ RESTAURAR COMPLETO: Esto reemplazará TODAS tus transacciones, metas, deudas y configuraciones actuales con las del archivo. ¿Continuar?')) {
-                            // Cargar todo
+                         if(confirm('⚠️ RESTAURAR COMPLETO: Esto reemplazará TODOS tus datos actuales. ¿Continuar?')) {
                             DB.transactions = data.transactions || [];
                             DB.categories = data.categories || defaultCats;
                             DB.debts = data.debts || [];
@@ -899,12 +1003,11 @@
                     } else {
                         alert("Formato de archivo no reconocido.");
                     }
-
                 } catch(err) { 
                     console.error(err);
                     alert('Error al leer el archivo JSON.'); 
                 }
-                input.value = ''; // Reset input
+                input.value = ''; 
             };
             reader.readAsText(file);
         }
