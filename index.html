@@ -8,6 +8,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="icon.png">
 <head>
+<!DOCTYPE html>
+<html lang="es">
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Comando Financiero</title>
@@ -92,10 +95,23 @@
                         <span><i data-lucide="arrow-down" class="inline w-3 h-3"></i> Gas: <span id="dash-expense">$0</span></span>
                     </div>
                 </div>
-                <!-- Gráfica -->
-                <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow border border-gray-100 dark:border-gray-700 h-40 flex items-center justify-center relative">
-                     <canvas id="miniChart"></canvas>
-                     <div id="miniChart-empty" class="absolute text-xs text-gray-400 hidden">Sin datos en este periodo</div>
+                
+                <!-- Gráfica y Tabla de Porcentajes -->
+                <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow border border-gray-100 dark:border-gray-700 flex flex-col h-auto min-h-[180px] relative">
+                     <h3 class="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Distribución de Gastos</h3>
+                     <div class="flex items-start gap-4 h-full">
+                         <!-- Gráfica (Izquierda) -->
+                         <div class="w-1/3 h-32 relative flex items-center justify-center">
+                             <canvas id="miniChart"></canvas>
+                         </div>
+                         <!-- Tabla (Derecha) -->
+                         <div id="chart-legend" class="w-2/3 text-xs space-y-1 overflow-y-auto max-h-32 pr-1 no-scrollbar">
+                             <!-- Se llena con JS -->
+                         </div>
+                     </div>
+                     <div id="miniChart-empty" class="absolute inset-0 flex items-center justify-center text-xs text-gray-400 hidden bg-white dark:bg-gray-800 bg-opacity-90">
+                         Sin datos en este periodo
+                     </div>
                 </div>
             </section>
 
@@ -169,7 +185,7 @@
             
             <!-- Crear Categorías -->
             <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
-                <h3 class="font-bold mb-3 text-sm flex items-center gap-2"><i data-lucide="tag" class="w-4 h-4 text-brand-500"></i> Categorías Personalizadas (Globales)</h3>
+                <h3 class="font-bold mb-3 text-sm flex items-center gap-2"><i data-lucide="tag" class="w-4 h-4 text-brand-500"></i> Categorías Personalizadas</h3>
                 <p class="text-[10px] text-gray-400 mb-2">Úsalas para Gastos o Ingresos.</p>
                 <div class="flex gap-2 mb-3">
                     <input type="text" id="new-cat-name" placeholder="Ej. Inversión, Mascotas..." class="flex-1 bg-gray-50 dark:bg-gray-700 p-2 rounded text-sm outline-none border border-gray-200 dark:border-gray-600 dark:text-white">
@@ -205,26 +221,40 @@
 
     </main>
 
-    <!-- NAVBAR -->
+    <!-- NAVBAR ACTUALIZADO (2 Botones) -->
     <nav class="fixed bottom-0 w-full bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 pb-safe z-30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
-        <div class="max-w-5xl mx-auto flex justify-around items-center h-16">
-            <button onclick="switchTab('dashboard')" class="nav-btn flex flex-col items-center gap-1 text-gray-400 w-full" id="nav-dashboard">
-                <i data-lucide="home" class="w-5 h-5"></i><span class="text-[10px]">Inicio</span>
-            </button>
-            <button onclick="switchTab('transactions')" class="nav-btn flex flex-col items-center gap-1 text-gray-400 w-full" id="nav-transactions">
-                <i data-lucide="list" class="w-5 h-5"></i><span class="text-[10px]">Historial</span>
-            </button>
-            <div class="relative -top-5">
-                <button onclick="openTransactionModal()" class="bg-brand-600 hover:bg-brand-700 text-white w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-transform hover:scale-110 active:scale-95 ring-4 ring-white dark:ring-gray-900">
-                    <i data-lucide="plus" class="w-7 h-7"></i>
+        <div class="max-w-5xl mx-auto flex justify-between items-end h-16 px-2 sm:px-6">
+            <!-- Iconos Izquierda -->
+            <div class="flex gap-4 sm:gap-8 mb-2">
+                <button onclick="switchTab('dashboard')" class="nav-btn flex flex-col items-center gap-1 text-gray-400 w-12" id="nav-dashboard">
+                    <i data-lucide="home" class="w-5 h-5"></i><span class="text-[9px]">Inicio</span>
+                </button>
+                <button onclick="switchTab('transactions')" class="nav-btn flex flex-col items-center gap-1 text-gray-400 w-12" id="nav-transactions">
+                    <i data-lucide="list" class="w-5 h-5"></i><span class="text-[9px]">Listado</span>
                 </button>
             </div>
-            <button onclick="switchTab('goals')" class="nav-btn flex flex-col items-center gap-1 text-gray-400 w-full" id="nav-goals">
-                <i data-lucide="target" class="w-5 h-5"></i><span class="text-[10px]">Metas</span>
-            </button>
-            <button onclick="switchTab('config')" class="nav-btn flex flex-col items-center gap-1 text-gray-400 w-full" id="nav-config">
-                <i data-lucide="settings" class="w-5 h-5"></i><span class="text-[10px]">Config</span>
-            </button>
+
+            <!-- Botones Centrales Flotantes -->
+            <div class="relative -top-4 flex gap-3">
+                <button onclick="openTransactionModal('expense')" class="bg-red-500 hover:bg-red-600 text-white w-12 h-12 rounded-full shadow-lg flex flex-col items-center justify-center transition-transform hover:scale-105 active:scale-95 ring-2 ring-white dark:ring-gray-900" title="Nuevo Egreso">
+                    <i data-lucide="arrow-down" class="w-5 h-5"></i>
+                    <span class="text-[8px] font-bold">Egreso</span>
+                </button>
+                <button onclick="openTransactionModal('income')" class="bg-emerald-500 hover:bg-emerald-600 text-white w-12 h-12 rounded-full shadow-lg flex flex-col items-center justify-center transition-transform hover:scale-105 active:scale-95 ring-2 ring-white dark:ring-gray-900" title="Nuevo Ingreso">
+                    <i data-lucide="arrow-up" class="w-5 h-5"></i>
+                    <span class="text-[8px] font-bold">Ingreso</span>
+                </button>
+            </div>
+
+            <!-- Iconos Derecha -->
+            <div class="flex gap-4 sm:gap-8 mb-2">
+                <button onclick="switchTab('goals')" class="nav-btn flex flex-col items-center gap-1 text-gray-400 w-12" id="nav-goals">
+                    <i data-lucide="target" class="w-5 h-5"></i><span class="text-[9px]">Metas</span>
+                </button>
+                <button onclick="switchTab('config')" class="nav-btn flex flex-col items-center gap-1 text-gray-400 w-12" id="nav-config">
+                    <i data-lucide="settings" class="w-5 h-5"></i><span class="text-[9px]">Config</span>
+                </button>
+            </div>
         </div>
     </nav>
 
@@ -239,9 +269,9 @@
             </div>
             <div class="space-y-4 text-sm text-gray-600 dark:text-gray-300">
                 <p><strong>Inicio:</strong> Resumen financiero. Usa los botones "Mes Actual/Pasado" o cambia las fechas para ver tu quincena.</p>
+                <p><strong>Botones Centrales:</strong> Usa el botón <strong>Rojo</strong> para registrar gastos y el <strong>Verde</strong> para ingresos.</p>
                 <p><strong>Categorías Personalizadas:</strong> En "Config", crea categorías como "Inversión". Estas aparecerán tanto para registrar Gastos como Ingresos.</p>
                 <p><strong>Filtros:</strong> En "Historial", si no ves un movimiento, verifica las fechas "Desde/Hasta" o usa el filtro de Categoría.</p>
-                <p><strong>Presupuestos:</strong> Asigna límites a tus categorías en "Config" para que aparezcan las barras de progreso en el Inicio.</p>
             </div>
             <button onclick="closeModal('modal-help')" class="w-full mt-6 bg-brand-600 text-white py-2 rounded-lg">Entendido</button>
         </div>
@@ -256,11 +286,14 @@
             </div>
             <form onsubmit="saveTransaction(event)" class="p-4 space-y-4 overflow-y-auto">
                 <input type="hidden" id="tx-id">
+                
+                <!-- Toggle Visual (ahora solo informativo o para cambiar si te equivocaste de botón) -->
                 <div class="flex bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
                     <button type="button" id="btn-type-expense" onclick="setTxType('expense')" class="flex-1 py-2 text-sm font-bold rounded shadow bg-white text-red-500">Gasto</button>
                     <button type="button" id="btn-type-income" onclick="setTxType('income')" class="flex-1 py-2 text-sm text-gray-500">Ingreso</button>
                 </div>
                 <input type="hidden" id="tx-type" value="expense">
+
                 <input type="number" id="tx-amount" step="any" required placeholder="$0.00" class="w-full text-3xl font-bold text-center bg-transparent border-b border-gray-200 dark:border-gray-700 outline-none p-2 dark:text-white">
                 <div class="grid grid-cols-2 gap-3">
                     <input type="date" id="tx-date" required class="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg text-sm dark:text-white outline-none">
@@ -330,7 +363,7 @@
             initTheme();
             initData();
             setDefaultDates();
-            populateFilterCategory(); // FIX: Cargar filtros al inicio
+            populateFilterCategory();
             switchTab('dashboard'); 
         });
 
@@ -411,7 +444,11 @@
 
         function updateMiniChart(txs) {
             const ctx = document.getElementById('miniChart');
+            const legendContainer = document.getElementById('chart-legend');
             const expenses = txs.filter(t => t.type === 'expense');
+            
+            legendContainer.innerHTML = ''; // Limpiar tabla
+
             if(expenses.length === 0) {
                 document.getElementById('miniChart-empty').classList.remove('hidden');
                 ctx.style.opacity = 0; return;
@@ -419,21 +456,57 @@
             document.getElementById('miniChart-empty').classList.add('hidden');
             ctx.style.opacity = 1;
 
+            // Datos para gráfica
             const dataMap = {};
-            expenses.forEach(t => dataMap[t.category] = (dataMap[t.category] || 0) + t.amount);
+            let totalExpenses = 0;
+            expenses.forEach(t => { 
+                dataMap[t.category] = (dataMap[t.category] || 0) + t.amount;
+                totalExpenses += t.amount;
+            });
             
+            const labels = Object.keys(dataMap);
+            const values = Object.values(dataMap);
+            const bgColors = labels.map(c => DB.categories[c] || '#ccc');
+
+            // Render Gráfica
             if(miniChart) miniChart.destroy();
             miniChart = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
-                    labels: Object.keys(dataMap),
+                    labels: labels,
                     datasets: [{
-                        data: Object.values(dataMap),
-                        backgroundColor: Object.keys(dataMap).map(c => DB.categories[c] || '#ccc'),
-                        borderWidth: 0
+                        data: values,
+                        backgroundColor: bgColors,
+                        borderWidth: 0,
+                        hoverOffset: 4
                     }]
                 },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+
+            // --- RENDER TABLA DE PORCENTAJES ---
+            // Convertir a array para ordenar
+            const sortedData = labels.map((label, i) => ({
+                label: label,
+                value: values[i],
+                color: bgColors[i]
+            })).sort((a, b) => b.value - a.value);
+
+            sortedData.forEach(item => {
+                const percent = ((item.value / totalExpenses) * 100).toFixed(1);
+                const row = document.createElement('div');
+                row.className = "flex justify-between items-center mb-1 text-gray-600 dark:text-gray-300";
+                row.innerHTML = `
+                    <div class="flex items-center gap-1.5 overflow-hidden">
+                        <div class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color:${item.color}"></div>
+                        <span class="truncate font-medium">${item.label}</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-[10px] shrink-0">
+                        <span>${formatMoney(item.value)}</span>
+                        <span class="font-bold bg-gray-100 dark:bg-gray-700 px-1 rounded">${percent}%</span>
+                    </div>
+                `;
+                legendContainer.appendChild(row);
             });
         }
 
@@ -508,22 +581,21 @@
             const select = document.getElementById('filter-category');
             const savedVal = select.value;
             select.innerHTML = '<option value="all">Todas</option>';
-            // Fusionar todas las categorías posibles
             const allCats = {...DB.categories, ...incomeCats};
             Object.keys(allCats).sort().forEach(cat => {
                 select.innerHTML += `<option value="${cat}">${cat}</option>`;
             });
-            select.value = savedVal; // Restaurar selección si es posible
+            select.value = savedVal;
         }
 
         // --- TRANSACCIONES ---
-        function openTransactionModal() {
+        function openTransactionModal(defaultType) {
             document.getElementById('modal-transaction').classList.remove('hidden');
             document.getElementById('modal-transaction').classList.add('flex');
             document.getElementById('tx-date').valueAsDate = new Date();
             document.getElementById('tx-amount').value = '';
             document.getElementById('tx-desc').value = '';
-            setTxType('expense');
+            setTxType(defaultType || 'expense');
         }
 
         function setTxType(type) {
@@ -532,7 +604,6 @@
             const btnInc = document.getElementById('btn-type-income');
             const viatico = document.getElementById('viaticos-check');
             
-            // Estilos
             const active = "flex-1 py-2 text-sm font-bold rounded shadow bg-white transition-all";
             const inactive = "flex-1 py-2 text-sm text-gray-500 hover:bg-gray-200 transition-all";
             
@@ -546,15 +617,11 @@
                 viatico.classList.add('hidden');
             }
             
-            // RELLENAR SELECTOR (Ahora incluye Custom Categories en AMBOS)
             const select = document.getElementById('tx-category');
             select.innerHTML = '';
-            
-            // Expense: Default + Custom
-            // Income: IncomeDefaults + Custom (FIX APPLIED)
             let catsToShow = {};
             if(type === 'expense') catsToShow = DB.categories;
-            else catsToShow = {...incomeCats, ...DB.categories}; // Merge para permitir Custom en Ingreso
+            else catsToShow = {...incomeCats, ...DB.categories}; 
 
             Object.keys(catsToShow).sort().forEach(c => {
                 const opt = document.createElement('option');
@@ -583,7 +650,6 @@
             });
             saveDB('transactions');
 
-            // Auto-ajustar filtros para mostrar el dato nuevo si es viejo
             const fStart = document.getElementById('filter-date-start');
             const fEnd = document.getElementById('filter-date-end');
             if(date < fStart.value) fStart.value = date;
@@ -601,13 +667,12 @@
                 DB.transactions = DB.transactions.filter(t => t.id !== id);
                 saveDB('transactions');
                 renderTransactions();
-                renderDashboard(); // Actualizar dashboard también
+                renderDashboard();
             }
         }
 
         // --- CONFIG ---
         function renderConfig() {
-            // Categorías
             const list = document.getElementById('config-categories-list');
             list.innerHTML = '';
             Object.keys(DB.categories).forEach(cat => {
@@ -619,7 +684,6 @@
                     </div>`;
             });
 
-            // Presupuestos
             const budList = document.getElementById('budget-config-list');
             budList.innerHTML = '';
             Object.keys(DB.categories).forEach(cat => {
@@ -650,7 +714,7 @@
                 DB.categories[name] = color;
                 saveDB('categories');
                 renderConfig();
-                populateFilterCategory(); // Actualizar filtro
+                populateFilterCategory();
                 document.getElementById('new-cat-name').value = '';
             } else alert('Nombre inválido o repetido');
         }
@@ -664,7 +728,7 @@
             }
         }
 
-        // --- METAS Y DEUDAS (Simplificado) ---
+        // --- METAS Y DEUDAS ---
         function renderGoalsView() {
             const dList = document.getElementById('debts-list');
             dList.innerHTML = '';
